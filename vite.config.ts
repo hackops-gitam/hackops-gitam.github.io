@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { ghPages } from 'vite-plugin-gh-pages'; // Proper import of the plugin
+import { ghPages } from 'vite-plugin-gh-pages'; // Proper import of the plugi
 
 export default defineConfig({
   plugins: [react(), ghPages()],
