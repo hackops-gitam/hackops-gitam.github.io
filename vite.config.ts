@@ -8,5 +8,5 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   assetsInclude: ['**/*.jpg', '**/*.jpeg', '**/*.png', '**/*.svg', '**/*.gif'], // Add support for image types
-  base: '/hackops-site-react-vite-app/', // Ensures relative paths in production
+  base: './', // Ensures relative paths in production
 });
