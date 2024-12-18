@@ -8,5 +8,5 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   assetsInclude: ['**/*.jpg', '**/*.jpeg', '**/*.png', '**/*.svg', '**/*.gif'], // Add support for image types
-  base: '/hackops-gitam.github.io', // This is the subdirectory on GitHub Pages
+  base: '/hackops-gitam.github.io/', // This is the subdirectory on GitHub Pages
 });
