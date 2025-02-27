@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 5px rgba(100, 255, 218, 0.3);
+  }
+}
+
+/* Dot Matrix Animation for Headings */
+h1, h2, h3 {
+  position: relative;
+}
+
+h1::after, h2::after, h3::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(100, 255, 218, 0) 0%,
+    rgba(100, 255, 218, 0.2) 50%,
+    rgba(100, 255, 218, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: scanline 2s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scanline {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Swiper Styles */
+.swiper {
+  padding: 20px 0 40px;
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+  color: #64ffda !important;
+}
+
+.swiper-pagination-bullet {
+  background: #64ffda !important;
+}
+
+.swiper-pagination {
+  bottom: 0 !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a192f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #64ffda;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4cd3b0;
+}
+
+/* Global styles for event details */
+.event-title {
+  font-size: 2.25rem; /* Customize title size */
+  font-weight: bold;
+}
+
+.event-description {
+  color: #dfe0e1; /* Customize text color */
+}
+
+.event-photo {
+  object-fit: cover;
+  border-radius: 12px;
+}
