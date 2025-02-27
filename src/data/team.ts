@@ -20,7 +20,7 @@ export const teamMembers: TeamMember[] = [
     role: 'Secretary',
     image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1734461008/_MG_0028_uefrrp.jpg',
     socials: {
-      linkedin: 'https://linkedin.com',
+      linkedin: 'https://linkedin.com/srinivas-atta',
       twitter: 'https://twitter.com',
     },
   },
