@@ -15,17 +15,6 @@ export const teamMembers: TeamMember[] = [
     },
   },
   {
-    id: '2',
-    name: 'Vice President',
-    role: 'Vice President',
-    image: 'https://wallpapers.com/images/high/dark-laptop-hacker-guy-fawkes-6czffv8dmquf6dxo.webp',
-    socials: {
-      linkedin: 'https://linkedin.com',
-      github: 'https://github.com',
-      MailIcon:'#'
-    },
-  },
-  {
     id: '3',
     name: 'Srinivas Atta',
     role: 'Secretary',
@@ -61,7 +50,7 @@ export const teamMembers: TeamMember[] = [
     id: '6',
     name: 'ER/PR Manager',
     role: 'ER/PR Manager',
-    image: 'https://wallpapers.com/images/high/dark-laptop-hacker-guy-fawkes-6czffv8dmquf6dxo.webp',
+    image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1740656931/crp_v_kv2z6y.jpg',
     socials: {
       linkedin: '',
       github: '',
