@@ -1,6 +1,14 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// Sanitize event name for table name (remove special characters, limit length)
+function sanitizeTableName(eventName: string): string {
+  return eventName
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '_')
+    .substring(0, 50); // Limit to 50 characters to fit PostgreSQL identifier limits
+}
+
 const supabaseUrl = 'https://lyrxrlxrxwqppzdaswnu.supabase.co'; // Your project URL
 const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cnhybHhyeHdxcHB6ZGFzd251Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTAxMTMzOCwiZXhwIjoyMDU2NTg3MzM4fQ.oxeoPugpai79SIFoI2cI1pJHcpSKBngP5k6ecDmckek'; // Your Service Role Key
 
@@ -32,12 +40,47 @@ serve(async (req) => {
   if (req.method === 'POST') {
     try {
       const data = await req.json();
-      const { eventId, name, email, phone, year, discipline, program, registrationNumber } = data;
+      const { eventId, name, email, phone, year, discipline, program, registrationNumber, title } = data;
 
-      // Store in Supabase database
-      const { error: dbError } = await supabase.from('registrations').insert([
+      if (!eventId || !title) {
+        throw new Error('eventId and title are required');
+      }
+
+      // Sanitize event name for table name
+      const sanitizedEventName = sanitizeTableName(title);
+      const tableName = `registrations_event_${eventId}_${sanitizedEventName}`;
+
+      // Check if table exists, create if it doesn’t
+      const createTableQuery = `
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT FROM pg_tables 
+            WHERE schemaname = 'public' AND tablename = '${tableName}'
+          ) THEN
+            EXECUTE FORMAT('CREATE TABLE public.${tableName} (
+              id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+              event_id TEXT NOT NULL,
+              event_name TEXT NOT NULL,
+              name TEXT NOT NULL,
+              email TEXT NOT NULL,
+              phone TEXT NOT NULL,
+              year TEXT NOT NULL,
+              discipline TEXT NOT NULL,
+              program TEXT NOT NULL,
+              registration_number TEXT NOT NULL,
+              timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )');
+          END IF;
+        END $$;
+      `;
+      await supabase.rpc('execute_raw_sql', { sql: createTableQuery });
+
+      // Insert data into the dynamic table
+      const { error: dbError } = await supabase.from(tableName).insert([
         { 
           event_id: eventId, 
+          event_name: title, 
           name, 
           email, 
           phone, 

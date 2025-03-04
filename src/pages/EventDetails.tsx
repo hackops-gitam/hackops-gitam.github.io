@@ -32,7 +32,8 @@ const EventDetails = () => {
         },
         body: JSON.stringify({
           ...data,
-          eventId: id, // Automatically include eventId from route
+          eventId: id,
+          title: event?.title, // Automatically include eventId from route
         }),
       });
 

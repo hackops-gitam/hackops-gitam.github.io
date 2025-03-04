@@ -11,11 +11,12 @@ interface FormData {
   discipline: string;
   program: string;
   termsAccepted: boolean;
-  registrationNumber: string; // New field
+  registrationNumber: string;
 }
 
 interface RegistrationFormProps {
   eventId: string;
+  title: string; // New prop for event name
   whatsappLink?: string; // Optional WhatsApp group link
 }
 
@@ -52,7 +53,7 @@ const programOptions: { [key: string]: string[] } = {
   Other: ['II Year B.Optometry'],
 };
 
-export function RegistrationForm({ eventId, whatsappLink }: RegistrationFormProps) {
+export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationFormProps) {
   const { register, handleSubmit, watch, control, formState: { errors, isSubmitting } } = useForm<FormData>({
     defaultValues: { termsAccepted: false },
   });
@@ -76,7 +77,8 @@ export function RegistrationForm({ eventId, whatsappLink }: RegistrationFormProp
         },
         body: JSON.stringify({
           ...data,
-          eventId, // Automatically include eventId from props
+          eventId,
+          title, // Include the event title
         }),
       });
 
