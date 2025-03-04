@@ -1,8 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { events } from '../data/events';
-import { RegistrationForm } from '../components/RegistrationForm'; // Ensure this component exists
-import { supabase } from '../supabaseClient'; // Ensure supabaseClient.js is set up
+import { RegistrationForm } from '../components/RegistrationForm';
 
 const EventDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,11 +20,29 @@ const EventDetails = () => {
 
   const handleRegistrationSubmit = async (data: any) => {
     try {
-      const { data: functionData, error: functionError } = await supabase.functions.invoke('register', {
-        body: JSON.stringify({ ...data, eventId: id }),
+      // Temporary Anon Key (move to .env or proxy in production)
+      const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cnhybHhyeHdxcHB6ZGFzd251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEwMTEzMzgsImV4cCI6MjA1NjU4NzMzOH0.H7NH1KAugyrUi0QHWfXTe6C4P9vXzH-ZOYDnwGJRo0A';
+      const functionUrl = 'https://lyrxrlxrxwqppzdaswnu.functions.supabase.co/register';
+
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${anonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...data,
+          eventId: id, // Automatically include eventId from route
+        }),
       });
-      if (functionError) throw functionError;
-      console.log('Registration successful:', functionData.message);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Registration failed: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('Registration successful:', result.message);
       setEvent((prev: any) => ({
         ...prev,
         participants: { ...prev.participants, current: prev.participants.current + 1 },
@@ -242,12 +259,12 @@ const EventDetails = () => {
           }
 
           .animation-slide > div {
-            width: 25%; /* Four images per slide *//
+            width: 25%; /* Four images per slide */
           }
         }
       `}</style>
     </div>
   );
-}; 
+};
 
 export default EventDetails;

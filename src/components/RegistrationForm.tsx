@@ -1,4 +1,3 @@
-// src/components/RegistrationForm.tsx
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Button } from './ui/Button';
@@ -16,7 +15,7 @@ interface FormData {
 
 interface RegistrationFormProps {
   eventId: string;
-  onSubmit: (data: FormData) => Promise<void>;
+  onSubmit?: (data: FormData) => Promise<void>; // Optional, as we'll handle submission internally
   whatsappLink?: string; // Optional WhatsApp group link
 }
 
@@ -53,7 +52,7 @@ const programOptions: { [key: string]: string[] } = {
   Other: ['II Year B.Optometry'],
 };
 
-export function RegistrationForm({ eventId, onSubmit, whatsappLink }: RegistrationFormProps) {
+export function RegistrationForm({ eventId, whatsappLink }: RegistrationFormProps) {
   const { register, handleSubmit, watch, control, formState: { errors, isSubmitting } } = useForm<FormData>({
     defaultValues: { termsAccepted: false },
   });
@@ -65,9 +64,32 @@ export function RegistrationForm({ eventId, onSubmit, whatsappLink }: Registrati
 
   const onFormSubmit = async (data: FormData) => {
     try {
-      await onSubmit({ ...data, eventId });
+      // Temporary Anon Key (move to .env or proxy in production)
+      const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cnhybHhyeHdxcHB6ZGFzd251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEwMTEzMzgsImV4cCI6MjA1NjU4NzMzOH0.H7NH1KAugyrUi0QHWfXTe6C4P9vXzH-ZOYDnwGJRo0A';
+      const functionUrl = 'https://lyrxrlxrxwqppzdaswnu.functions.supabase.co/register';
+
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${anonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...data,
+          eventId, // Automatically include eventId from props
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Registration failed: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('Registration successful:', result.message);
       setSubmissionStatus('success');
     } catch (error) {
+      console.error('Error:', error.message || error);
       setSubmissionStatus('error');
     }
   };
