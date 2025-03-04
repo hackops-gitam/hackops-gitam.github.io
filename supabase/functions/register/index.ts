@@ -7,56 +7,82 @@ const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 const mailgunApiKey = '7d6e62760fd5ce741c2f83a623efd94c-e298dd8e-72d43344';
 const mailgunDomain = 'hackopsgitam.live';
 
+// Allowed origins for CORS
+const allowedOrigins = ['http://localhost:5173', 'https://hackopsgitam.live'];
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 serve(async (req) => {
-  try {
-    const data = await req.json();
-    const { eventId, name, email, phone, year, discipline, program } = data;
+  const origin = req.headers.get('Origin') || '';
+  if (!allowedOrigins.includes(origin)) {
+    return new Response('CORS policy violation', { status: 403 });
+  }
 
-    // Send Email via Mailgun
-    const auth = encode(`api:${mailgunApiKey}`);
-    const emailResponse = await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
-      method: 'POST',
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
       headers: {
-        Authorization: `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        from: 'HackOps Club <no-reply@hackopsgitam.live>',
-        to: email,
-        subject: 'Registration Confirmation',
-        text: `Thank you for registering for Event ${eventId}!\nName: ${name}\nEmail: ${email}\nPhone: ${phone}\nYear: ${year}\nDiscipline: ${discipline}\nProgram: ${program}`,
-      }).toString(),
-    });
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      throw new Error(`Mailgun failed: ${errorText}`);
-    }
-
-    // Store in Supabase database
-    const { error: dbError } = await supabase.from('registrations').insert([{ event_id: eventId, name, email, phone, year, discipline, program, timestamp: new Date().toISOString() }]);
-    if (dbError) throw dbError;
-
-    return new Response(JSON.stringify({ message: 'Registration successful' }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': 'https://hackopsgitam.live', // Allow your dev origin
+        'Access-Control-Allow-Origin': origin,
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    });
-  } catch (error) {
-    console.error('Error:', error);
-    return new Response(JSON.stringify({ message: 'Registration failed', error: error.message }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': 'https://hackopsgitam.live', // Allow your dev origin
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
       },
     });
   }
+
+  // Handle POST request
+  if (req.method === 'POST') {
+    try {
+      const data = await req.json();
+      const { eventId, name, email, phone, year, discipline, program } = data;
+
+      // Send Email via Mailgun
+      const auth = encode(`api:${mailgunApiKey}`);
+      const emailResponse = await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          from: 'HackOps Club <no-reply@hackopsgitam.live>',
+          to: email,
+          subject: 'Registration Confirmation',
+          text: `Thank you for registering for Event ${eventId}!\nName: ${name}\nEmail: ${email}\nPhone: ${phone}\nYear: ${year}\nDiscipline: ${discipline}\nProgram: ${program}`,
+        }).toString(),
+      });
+      if (!emailResponse.ok) {
+        const errorText = await emailResponse.text();
+        throw new Error(`Mailgun failed: ${errorText}`);
+      }
+
+      // Store in Supabase database
+      const { error: dbError } = await supabase.from('registrations').insert([{ event_id: eventId, name, email, phone, year, discipline, program, timestamp: new Date().toISOString() }]);
+      if (dbError) throw dbError;
+
+      return new Response(JSON.stringify({ message: 'Registration successful' }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      return new Response(JSON.stringify({ message: 'Registration failed', error: error.message }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      });
+    }
+  }
+
+  return new Response('Method not allowed', { status: 405 });
 });
