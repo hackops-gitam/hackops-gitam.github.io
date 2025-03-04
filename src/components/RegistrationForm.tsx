@@ -11,11 +11,11 @@ interface FormData {
   discipline: string;
   program: string;
   termsAccepted: boolean;
+  registrationNumber: string; // New field
 }
 
 interface RegistrationFormProps {
   eventId: string;
-  onSubmit?: (data: FormData) => Promise<void>; // Optional, as we'll handle submission internally
   whatsappLink?: string; // Optional WhatsApp group link
 }
 
@@ -182,6 +182,17 @@ export function RegistrationForm({ eventId, whatsappLink }: RegistrationFormProp
             {errors.program && <p className="text-red-500">{errors.program.message}</p>}
           </div>
         )}
+
+        {/* Registration Number */}
+        <div>
+          <label className="block text-white">Registration Number</label>
+          <input
+            {...register('registrationNumber', { required: 'Registration Number is required' })}
+            className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
+            placeholder="Enter your registration number"
+          />
+          {errors.registrationNumber && <p className="text-red-500">{errors.registrationNumber.message}</p>}
+        </div>
 
         {/* Terms & Conditions */}
         <div>

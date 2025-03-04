@@ -32,10 +32,22 @@ serve(async (req) => {
   if (req.method === 'POST') {
     try {
       const data = await req.json();
-      const { eventId, name, email, phone, year, discipline, program } = data;
+      const { eventId, name, email, phone, year, discipline, program, registrationNumber } = data;
 
       // Store in Supabase database
-      const { error: dbError } = await supabase.from('registrations').insert([{ event_id: eventId, name, email, phone, year, discipline, program, timestamp: new Date().toISOString() }]);
+      const { error: dbError } = await supabase.from('registrations').insert([
+        { 
+          event_id: eventId, 
+          name, 
+          email, 
+          phone, 
+          year, 
+          discipline, 
+          program, 
+          registration_number: registrationNumber, 
+          timestamp: new Date().toISOString() 
+        }
+      ]);
       if (dbError) throw dbError;
 
       return new Response(JSON.stringify({ message: 'Registration successful' }), {
