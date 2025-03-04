@@ -7,7 +7,6 @@ const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 const mailgunApiKey = '7d6e62760fd5ce741c2f83a623efd94c-e298dd8e-72d43344';
 const mailgunDomain = 'hackopsgitam.live';
 
-// Allowed origins for CORS
 const allowedOrigins = ['http://localhost:5173', 'https://hackopsgitam.live'];
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -18,26 +17,23 @@ serve(async (req) => {
     return new Response('CORS policy violation', { status: 403 });
   }
 
-  // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
       headers: {
         'Access-Control-Allow-Origin': origin,
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info', // Added x-client-info
         'Access-Control-Max-Age': '86400',
       },
     });
   }
 
-  // Handle POST request
   if (req.method === 'POST') {
     try {
       const data = await req.json();
       const { eventId, name, email, phone, year, discipline, program } = data;
 
-      // Send Email via Mailgun
       const auth = encode(`api:${mailgunApiKey}`);
       const emailResponse = await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
         method: 'POST',
@@ -57,7 +53,6 @@ serve(async (req) => {
         throw new Error(`Mailgun failed: ${errorText}`);
       }
 
-      // Store in Supabase database
       const { error: dbError } = await supabase.from('registrations').insert([{ event_id: eventId, name, email, phone, year, discipline, program, timestamp: new Date().toISOString() }]);
       if (dbError) throw dbError;
 
@@ -67,7 +62,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': origin,
           'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info', // Added x-client-info
         },
       });
     } catch (error) {
@@ -78,7 +73,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': origin,
           'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info', // Added x-client-info
         },
       });
     }
