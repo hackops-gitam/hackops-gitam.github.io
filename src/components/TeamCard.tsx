@@ -1,5 +1,6 @@
 import { TeamMember } from '../types';
 import { Card } from './ui/Card';
+import { teamMembers } from '../data/team';
 import { Github, Linkedin, Twitter } from 'lucide-react';
 
 interface TeamCardProps {

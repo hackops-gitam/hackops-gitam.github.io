@@ -10,7 +10,8 @@ export interface Event {
   type: 'workshop' | 'webinar' | 'competition';
   status: 'upcoming' | 'ongoing' | 'past' | '#';
   registrationStatus: 'started' | 'notStarted';
-  registrationLink: string;
+  registrationLink?: string;
+  useCustomForm?: boolean;
   image: string;
   participants: {
     current: number;

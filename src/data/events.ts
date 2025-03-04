@@ -55,7 +55,8 @@ export const events: Event[] = [
     detailsLink:"#",
     status: 'upcoming',
     registrationLink: '#',
-    registrationStatus: 'notStarted',
+    registrationStatus: 'started',
+    useCustomForm:true,
     image: 'https://assets.techrepublic.com/uploads/2021/08/tux-new.jpg',
     participants: {
       current: 0,
