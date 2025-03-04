@@ -72,8 +72,9 @@ export const events: Event[] = [
     certificateLink:"#",
     eventImages:[],
     status: 'upcoming',
-    registrationStatus: 'notStarted',
+    registrationStatus: 'started',
     registrationLink: 'https://forms.example.com/network-security-webinar',
+    useCustomForm:true,
     detailsLink: '#',
     image: 'https://miro.medium.com/v2/resize:fit:996/1*LpZCCuo4-3a6tKfyBQ5iWA.jpeg',
     participants: {
