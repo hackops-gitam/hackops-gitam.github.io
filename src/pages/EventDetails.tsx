@@ -242,12 +242,12 @@ const EventDetails = () => {
           }
 
           .animation-slide > div {
-            width: 25%; /* Four images per slide */
+            width: 25%; /* Four images per slide *//
           }
         }
       `}</style>
     </div>
   );
-};
+}; 
 
 export default EventDetails;
