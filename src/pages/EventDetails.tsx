@@ -194,7 +194,7 @@ const EventDetails = () => {
               <RegistrationForm
                 eventId={id}
                 onSubmit={handleRegistrationSubmit}
-                whatsappLink="https://chat.whatsapp.com/example" // Replace with actual link
+                whatsappLink={event.whatsappLink} // Replace with actual link
               />
             </div>
           )}

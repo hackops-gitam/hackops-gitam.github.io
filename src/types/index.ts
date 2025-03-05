@@ -7,6 +7,7 @@ export interface Event {
   additionalLinks: string[];
   certificateLink: string;
   detailsLink:string;
+  whatsappLink?:string;
   type: 'workshop' | 'webinar' | 'competition';
   status: 'upcoming' | 'ongoing' | 'past' | '#';
   registrationStatus: 'started' | 'notStarted';

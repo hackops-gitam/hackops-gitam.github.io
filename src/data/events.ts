@@ -69,6 +69,7 @@ export const events: Event[] = [
     description: 'Expert-led session on securing wifi networks.',
     date: '2025-3-20',
     type: 'workshop',
+    whatsappLink:'https://chat.whatsapp.com/G9RNGrXFIqC4nfhniKNr8f',
     eventImages:[],
     status: 'upcoming',
     certificateLink:"#",
