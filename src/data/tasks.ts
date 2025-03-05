@@ -3,7 +3,7 @@ export const tasks = [
     {
       taskId: 'T001',
       taskName: 'Intro to cyber',
-      taskDescription: 'Complete the intro to cyber room on tryhackme at "https://tryhackme.com"',
+      taskDescription: 'Complete the intro to cyber room on tryhackme at "https://tryhackme.com/module/introduction-to-cyber-security"',
       date: '2025-03-10',
       submissionDeadline: '2025-03-15',
       useCustomForm: true,
