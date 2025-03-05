@@ -76,7 +76,7 @@ export const events: Event[] = [
     useCustomForm:true,
     registrationLink: 'https://forms.example.com/network-security-webinar',
     detailsLink: '#s',
-    image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1735666009/wifi_hoadsk.jpg',
+    image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1741174260/WIFI_amnblc.png',
     participants: {
       current: 0,
       total: 60
