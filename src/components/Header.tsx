@@ -20,6 +20,7 @@ export default function Header() {
     { name: 'CTFs', path: '/ctfs' },
     { name: 'Team', path: '/team' },
     { name: 'Contact', path: '/contact' },
+    { name: 'Admin', path:'/admin/login'}
   ];
 
   return (

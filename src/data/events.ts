@@ -2,7 +2,7 @@ import { Event } from '../types';
 
 export const events: Event[] = [
   {
-    id: '0',
+    id: 'CTF',
     title: "Capture The Flag [ CTF ] | Pramana'25",
     description: "A Capture The Flag (CTF) event is a cybersecurity competition where participants solve challenges related to hacking, cryptography, forensics, and reverse engineering to capture flags hidden in different tasks. The event tests participants' skills in penetration testing, problem-solving, and real-world security scenarios.",
     date: '2025-02-06',
@@ -45,7 +45,7 @@ export const events: Event[] = [
     }
   },
   {
-    id: '2',
+    id: 'Linux Masterclass',
     title: 'Linux Masterclass',
     description: 'Intensive 2-day bootcamp covering Linux fundamentals.',
     date: '2025-03-26',
@@ -64,7 +64,7 @@ export const events: Event[] = [
     }
   },
   {
-    id: '3',
+    id: 'CTF|HACKOPS',
     title: 'Capture The Flag - CTF',
     description: 'HackOps CTF',
     date: '2025-02-16',
@@ -83,7 +83,7 @@ export const events: Event[] = [
     }
   },
   {
-    id: '4',
+    id: 'Wifi Hacking',
     title: 'Wifi Hacking 101',
     description: 'Expert-led session on securing wifi networks.',
     date: '2025-2-20',
