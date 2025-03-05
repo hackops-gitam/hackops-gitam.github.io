@@ -6,8 +6,8 @@ import { Button } from '../components/ui/Button';
 
 export function AdminEvents() {
   const [data, setData] = useState<any[]>([]);
-  const [filterEventId, setFilterEventId] = useState<string>(''); // Filter by event_id
-  const [filterDate, setFilterDate] = useState<string>(''); // Filter by date (timestamp)
+  const [filterEventId, setFilterEventId] = useState<string>('');
+  const [filterDate, setFilterDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,18 +39,18 @@ export function AdminEvents() {
     return eventMatch && dateMatch;
   });
 
-  if (loading) return <div className="text-white">Loading...</div>;
-  if (error) return <div className="text-red-500">{error}</div>;
+  if (loading) return <div className="text-white text-center">Loading...</div>;
+  if (error) return <div className="text-red-500 text-center">{error}</div>;
 
   return (
-    <div className="p-6">
-      <Card className="p-6 bg-navy-light border-cyan">
-        <h2 className="text-2xl font-bold text-cyan mb-4">Admin Events Data</h2>
-        <div className="mb-4 space-x-4">
+    <div className="p-4 sm:p-6">
+      <Card className="p-4 sm:p-6 bg-navy-light border-2 border-cyan rounded-lg">
+        <h2 className="text-2xl sm:text-3xl font-bold text-cyan text-center mb-4 sm:mb-6">Admin Events Data</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0 sm:space-x-4">
           <select
             value={filterEventId}
             onChange={(e) => setFilterEventId(e.target.value)}
-            className="p-2 rounded bg-navy text-white border border-gray-800"
+            className="w-full sm:w-auto p-2 sm:p-3 rounded bg-navy text-white border border-gray-800 focus:border-cyan focus:outline-none text-sm sm:text-base"
           >
             <option value="">All Events (by ID)</option>
             {eventIds.map((eventId) => (
@@ -60,7 +60,7 @@ export function AdminEvents() {
           <select
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
-            className="p-2 rounded bg-navy text-white border border-gray-800"
+            className="w-full sm:w-auto p-2 sm:p-3 rounded bg-navy text-white border border-gray-800 focus:border-cyan focus:outline-none text-sm sm:text-base"
           >
             <option value="">All Dates</option>
             {dates.map((date) => (
@@ -68,39 +68,41 @@ export function AdminEvents() {
             ))}
           </select>
         </div>
-        <table className="w-full text-white">
-          <thead>
-            <tr>
-              <th className="border p-2">Event ID</th>
-              <th className="border p-2">Name</th>
-              <th className="border p-2">Email</th>
-              <th className="border p-2">Phone</th>
-              <th className="border p-2">Year</th>
-              <th className="border p-2">Discipline</th>
-              <th className="border p-2">Program</th>
-              <th className="border p-2">Registration Number</th>
-              <th className="border p-2">Timestamp</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((row, index) => (
-              <tr key={index}>
-                <td className="border p-2">{row.event_id}</td>
-                <td className="border p-2">{row.name}</td>
-                <td className="border p-2">{row.email}</td>
-                <td className="border p-2">{row.phone}</td>
-                <td className="border p-2">{row.year}</td>
-                <td className="border p-2">{row.discipline}</td>
-                <td className="border p-2">{row.program}</td>
-                <td className="border p-2">{row.registration_number}</td>
-                <td className="border p-2">{new Date(row.timestamp).toLocaleString()}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-white min-w-[600px]">
+            <thead>
+              <tr className="bg-navy-dark">
+                <th className="border p-2 sm:p-3 text-left">Event ID</th>
+                <th className="border p-2 sm:p-3 text-left">Name</th>
+                <th className="border p-2 sm:p-3 text-left">Email</th>
+                <th className="border p-2 sm:p-3 text-left">Phone</th>
+                <th className="border p-2 sm:p-3 text-left">Year</th>
+                <th className="border p-2 sm:p-3 text-left">Discipline</th>
+                <th className="border p-2 sm:p-3 text-left">Program</th>
+                <th className="border p-2 sm:p-3 text-left">Registration Number</th>
+                <th className="border p-2 sm:p-3 text-left">Timestamp</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {filteredData.length === 0 && <p className="text-white mt-4">No data available</p>}
+            </thead>
+            <tbody>
+              {filteredData.map((row, index) => (
+                <tr key={index} className="hover:bg-navy-light/50">
+                  <td className="border p-2 sm:p-3">{row.event_id}</td>
+                  <td className="border p-2 sm:p-3">{row.name}</td>
+                  <td className="border p-2 sm:p-3">{row.email}</td>
+                  <td className="border p-2 sm:p-3">{row.phone}</td>
+                  <td className="border p-2 sm:p-3">{row.year}</td>
+                  <td className="border p-2 sm:p-3">{row.discipline}</td>
+                  <td className="border p-2 sm:p-3">{row.program}</td>
+                  <td className="border p-2 sm:p-3">{row.registration_number}</td>
+                  <td className="border p-2 sm:p-3">{new Date(row.timestamp).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filteredData.length === 0 && <p className="text-white text-center mt-4">No data available</p>}
+        </div>
         <Button
-          className="mt-4"
+          className="mt-4 sm:mt-6 w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300 text-sm sm:text-base"
           onClick={() => {
             const csv = [
               ['Event ID', 'Name', 'Email', 'Phone', 'Year', 'Discipline', 'Program', 'Registration Number', 'Timestamp'],

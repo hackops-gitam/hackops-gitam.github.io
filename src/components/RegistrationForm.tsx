@@ -7,7 +7,7 @@ interface FormData {
   name: string;
   phone: string;
   email: string;
-  year: string;
+  year: string; // Remains string to match select options
   discipline: string;
   program: string;
   termsAccepted: boolean;
@@ -16,10 +16,11 @@ interface FormData {
 
 interface RegistrationFormProps {
   eventId: string;
-  title: string; // New prop for event name
-  whatsappLink?: string; // Optional WhatsApp group link
+  title: string;
+  whatsappLink?: string;
 }
 
+const yearOptions = ['I Year', 'II Year', 'III Year', 'IV Year', 'V Year']; // Define year options
 const disciplineOptions = ['Engineering', 'Management', 'Science', 'Other'];
 const programOptions: { [key: string]: string[] } = {
   Engineering: [
@@ -78,7 +79,7 @@ export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationF
         body: JSON.stringify({
           ...data,
           eventId,
-          title, // Include the event title
+          title,
         }),
       });
 
@@ -136,13 +137,18 @@ export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationF
           {errors.phone && <p className="text-red-500">{errors.phone.message}</p>}
         </div>
 
-        {/* Year */}
+        {/* Year (Dropdown) */}
         <div>
           <label className="block text-white">Year</label>
-          <input
+          <select
             {...register('year', { required: 'Year is required' })}
             className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
-          />
+          >
+            <option value="">Select Year</option>
+            {yearOptions.map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
           {errors.year && <p className="text-red-500">{errors.year.message}</p>}
         </div>
 
