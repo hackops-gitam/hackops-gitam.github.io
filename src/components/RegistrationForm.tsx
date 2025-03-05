@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react'; // Added useRef
 import { useForm, Controller } from 'react-hook-form';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -7,7 +7,7 @@ interface FormData {
   name: string;
   phone: string;
   email: string;
-  year: string; // Remains string to match select options
+  year: string;
   discipline: string;
   program: string;
   termsAccepted: boolean;
@@ -17,10 +17,10 @@ interface FormData {
 interface RegistrationFormProps {
   eventId: string;
   title: string;
-  whatsappLink?: string;
+  whatsappLink?: string; // Optional WhatsApp group link
 }
 
-const yearOptions = ['I Year', 'II Year', 'III Year', 'IV Year', 'V Year']; // Define year options
+const yearOptions = ['I Year', 'II Year', 'III Year', 'IV Year', 'V Year'];
 const disciplineOptions = ['Engineering', 'Management', 'Science', 'Other'];
 const programOptions: { [key: string]: string[] } = {
   Engineering: [
@@ -60,13 +60,41 @@ export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationF
   });
   const [showTermsPopup, setShowTermsPopup] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
+  const [timer, setTimer] = useState<number | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null); // Ref to manage interval
 
   const discipline = watch('discipline');
   const termsAccepted = watch('termsAccepted');
 
+  // Timer effect
+  useEffect(() => {
+    if (submissionStatus === 'success' && whatsappLink && timer === null) {
+      setTimer(5); // Start timer at 5 seconds
+      timerRef.current = setInterval(() => {
+        setTimer((prev) => {
+          if (prev === 1) {
+            clearInterval(timerRef.current!);
+            window.location.href = whatsappLink; // Auto-redirect
+            return null;
+          }
+          return prev ? prev - 1 : null;
+        });
+      }, 1000);
+    } else if (submissionStatus !== 'success' || !whatsappLink) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      setTimer(null);
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [submissionStatus, whatsappLink]); // Re-run when status or link changes
+
   const onFormSubmit = async (data: FormData) => {
     try {
-      // Temporary Anon Key (move to .env or proxy in production)
       const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cnhybHhyeHdxcHB6ZGFzd251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEwMTEzMzgsImV4cCI6MjA1NjU4NzMzOH0.H7NH1KAugyrUi0QHWfXTe6C4P9vXzH-ZOYDnwGJRo0A';
       const functionUrl = 'https://lyrxrlxrxwqppzdaswnu.functions.supabase.co/register';
 
@@ -244,16 +272,32 @@ export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationF
       )}
 
       {/* Submission Feedback */}
-      {submissionStatus === 'success' && (
+      {submissionStatus === 'success' && whatsappLink && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <Card className="p-6">
-            <p className="text-cyan text-lg">Registration Successful!</p>
-            {whatsappLink && (
-              <Button href={whatsappLink} target="_blank" className="mt-4">
-                Join WhatsApp Group
-              </Button>
+          <Card className="p-6 max-w-md text-center">
+            <p className="text-cyan text-lg mb-4">Registration Successful!</p>
+            {timer !== null && (
+              <p className="text-white mb-4">
+                You will be automatically redirected to the <strong>{title}</strong> WhatsApp group in <strong>{timer}</strong> seconds.
+              </p>
             )}
-            <Button onClick={() => setSubmissionStatus(null)} className="mt-4">
+            {timer === null && whatsappLink && (
+              <p className="text-white mb-4">
+                If you haven’t been redirected, please click the button below to join the <strong>{title}</strong> WhatsApp group for the latest event updates.
+              </p>
+            )}
+            <Button
+              href={whatsappLink}
+              target="_blank"
+              className="mt-4 mb-4 w-full sm:w-auto px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300"
+              onClick={() => setSubmissionStatus(null)}
+            >
+              Join WhatsApp Group
+            </Button>
+            <Button
+              onClick={() => setSubmissionStatus(null)}
+              className="mt-2 w-full sm:w-auto px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition duration-300"
+            >
               Close
             </Button>
           </Card>
