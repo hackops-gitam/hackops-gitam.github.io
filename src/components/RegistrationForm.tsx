@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'; // Added useRef
+import { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -17,7 +17,7 @@ interface FormData {
 interface RegistrationFormProps {
   eventId: string;
   title: string;
-  whatsappLink?: string; // Optional WhatsApp group link
+  whatsappLink?: string;
 }
 
 const yearOptions = ['I Year', 'II Year', 'III Year', 'IV Year', 'V Year'];
@@ -54,6 +54,9 @@ const programOptions: { [key: string]: string[] } = {
   Other: ['II Year B.Optometry'],
 };
 
+// Allowed email domains
+const allowedDomains = ['gitam.in', 'gitam.edu', 'student.gitam.edu', 'hackopsgitam.live'];
+
 export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationFormProps) {
   const { register, handleSubmit, watch, control, formState: { errors, isSubmitting } } = useForm<FormData>({
     defaultValues: { termsAccepted: false },
@@ -61,20 +64,19 @@ export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationF
   const [showTermsPopup, setShowTermsPopup] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
   const [timer, setTimer] = useState<number | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null); // Ref to manage interval
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const discipline = watch('discipline');
   const termsAccepted = watch('termsAccepted');
 
-  // Timer effect
   useEffect(() => {
     if (submissionStatus === 'success' && whatsappLink && timer === null) {
-      setTimer(5); // Start timer at 5 seconds
+      setTimer(5);
       timerRef.current = setInterval(() => {
         setTimer((prev) => {
           if (prev === 1) {
             clearInterval(timerRef.current!);
-            window.location.href = whatsappLink; // Auto-redirect
+            window.location.href = whatsappLink;
             return null;
           }
           return prev ? prev - 1 : null;
@@ -91,9 +93,16 @@ export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationF
         clearInterval(timerRef.current);
       }
     };
-  }, [submissionStatus, whatsappLink]); // Re-run when status or link changes
+  }, [submissionStatus, whatsappLink]);
 
   const onFormSubmit = async (data: FormData) => {
+    // Validate email domain
+    const emailDomain = data.email.split('@')[1]?.toLowerCase();
+    if (!allowedDomains.includes(emailDomain)) {
+      setSubmissionStatus('error');
+      return; // Prevent submission and popup if domain is invalid
+    }
+
     try {
       const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cnhybHhyeHdxcHB6ZGFzd251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEwMTEzMzgsImV4cCI6MjA1NjU4NzMzOH0.H7NH1KAugyrUi0QHWfXTe6C4P9vXzH-ZOYDnwGJRo0A';
       const functionUrl = 'https://lyrxrlxrxwqppzdaswnu.functions.supabase.co/register';
@@ -145,11 +154,16 @@ export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationF
           <input
             {...register('email', {
               required: 'Email is required',
-              pattern: { value: /^\S+@\S+$/i, message: 'Invalid email format' },
+              pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email format' },
             })}
             className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
           />
           {errors.email && <p className="text-red-500">{errors.email.message}</p>}
+          {submissionStatus === 'error' && !errors.email && (
+            <p className="text-red-500">
+              Please use an email from gitam.in, gitam.edu, student.gitam.edu, or hackopsgitam.live.
+            </p>
+          )}
         </div>
 
         {/* Phone */}
@@ -304,7 +318,9 @@ export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationF
         </div>
       )}
       {submissionStatus === 'error' && (
-        <div className="mt-4 text-red-500">Registration failed. Please try again.</div>
+        <div className="mt-4 text-red-500">
+          Registration failed. Please use an email from gitam.in, gitam.edu, student.gitam.edu, or hackopsgitam.live.
+        </div>
       )}
     </Card>
   );
