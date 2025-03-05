@@ -13,7 +13,7 @@ export function AdminLogin() {
     e.preventDefault();
     if (email === adminCredentials.email && password === adminCredentials.password) {
       localStorage.setItem('isAdmin', 'true');
-      navigate('/admin/events');
+      navigate('/admin'); // Redirect to dashboard instead of /admin/events
     } else {
       setError('Invalid email or password');
     }

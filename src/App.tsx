@@ -7,12 +7,15 @@ import CTFs from './pages/CTFs';
 import Team from './pages/Team';
 import Contact from './pages/Contact';
 import EventDetails from './pages/EventDetails';
-import { AdminLogin } from './components/AdminLogin'; // Import the admin login component
-import { AdminEvents } from './pages/AdminEvents'; // Import the admin events component
+import { AdminLogin } from './components/AdminLogin';
+import { AdminEvents } from './pages/AdminEvents';
+import { TaskSubmissions } from './pages/TaskSubmissions';
+import { TaskDetails } from './pages/TaskDetails';
+import { AdminTaskSubmissions } from './pages/AdminTaskSubmissions';
+import { AdminDashboard } from './pages/AdminDashboard'; // New import
 
-// ProtectedRoute component to restrict access to admin pages
 function ProtectedRoute({ children }: { children: JSX.Element }) {
-  const isAdmin = localStorage.getItem('isAdmin') === 'true'; // Check admin status from localStorage
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
   return isAdmin ? children : <Navigate to="/admin/login" />;
 }
 
@@ -24,26 +27,28 @@ export default function App() {
         <Header />
         <main className="relative pt-20">
           <Routes>
-            {/* Existing Routes - No Changes */}
+            {/* Public Routes */}
             <Route path="/" element={<Home />} />
             <Route path="/events" element={<Events />} />
             <Route path="/ctfs" element={<CTFs />} />
             <Route path="/team" element={<Team />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/task-submissions" element={<TaskSubmissions />} />
+            <Route path="/task-details/:taskId" element={<TaskDetails />} />
             <Route path="/event/:id" element={<EventDetails />} />
 
-            {/* New Admin Routes */}
+            {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route
-              path="/admin/events"
+              path="/admin"
               element={
                 <ProtectedRoute>
-                  <AdminEvents />
+                  <AdminDashboard />
                 </ProtectedRoute>
               }
             />
 
-            {/* Default Route - No Change */}
+            {/* Default Route */}
             <Route path="*" element={<Navigate to="/event/0" />} />
           </Routes>
         </main>
