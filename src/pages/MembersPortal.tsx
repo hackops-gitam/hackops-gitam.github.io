@@ -175,7 +175,7 @@ export function MembersPortal() {
       'BBA (Business Analytics)',
       'BBA (Financial Markets)',
     ],
-    Other: ['II Year B.Optometry'],
+    Other: ['Other'],
   };
   const batchOptions = ['Wednesday Batch', 'Thursday Batch'];
 
@@ -613,3 +613,9 @@ export function MembersPortal() {
     </div>
   );
 }
+
+/*
+it should show in the admin portal only !!!!! 
+and it should also gather the existing info in the db to show the stats for that task !
+It should show statiscs for each event for the parameters like 
+Year , Branch , Submissions */

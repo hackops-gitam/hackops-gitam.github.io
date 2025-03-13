@@ -51,7 +51,7 @@ const programOptions: { [key: string]: string[] } = {
     'BBA (Business Analytics)',
     'BBA (Financial Markets)',
   ],
-  Other: ['II Year B.Optometry'],
+  Other: ['Other'],
 };
 
 // Allowed email domains
