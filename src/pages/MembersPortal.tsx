@@ -60,7 +60,7 @@ export function MembersPortal() {
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [quizResult, setQuizResult] = useState<'passed' | 'failed' | null>(null);
-  const [finalScore, setFinalScore] = useState<number | null>(null); // New state for final score
+  const [finalScore, setFinalScore] = useState<number | null>(null);
 
   const { register, handleSubmit, watch, control, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
     defaultValues: { event_name: '', batch: '' },
@@ -169,6 +169,7 @@ export function MembersPortal() {
         timestamp: new Date().toISOString(),
         batch: data.batch,
         image_url: imageUrl,
+        quiz_score: finalScore ? Math.round(finalScore) : null, // Round the score to an integer
       });
       if (dbError) throw dbError;
 
@@ -176,6 +177,7 @@ export function MembersPortal() {
       setImagePreview(null);
       reset();
       setSubmissionTask(null);
+      setFinalScore(null);
     } catch (err) {
       setSubmissionError(err.message || 'Submission failed. Please try again.');
       setSubmissionStatus('error');
@@ -238,16 +240,17 @@ export function MembersPortal() {
     quizQuestions.forEach((question, index) => {
       if (userAnswers[index] === question.correct_answer) correctCount++;
     });
-    return (correctCount / quizQuestions.length) * 100;
+    const score = (correctCount / quizQuestions.length) * 100;
+    return Math.round(score); // Round the score to the nearest integer
   };
 
   const handleQuizSubmit = () => {
     const score = calculateQuizScore();
-    setFinalScore(score); // Store the final score
+    setFinalScore(score);
     if (score >= 75) {
       setQuizResult('passed');
       setQuizTask(null);
-      setSubmissionTask(quizTask); // Open submission form
+      setSubmissionTask(quizTask);
     } else {
       setQuizResult('failed');
     }
@@ -360,6 +363,7 @@ export function MembersPortal() {
                       <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Submission Date</th>
                       <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Status</th>
                       <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Image</th>
+                      <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Quiz Score</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -374,6 +378,9 @@ export function MembersPortal() {
                               View Image
                             </a>
                           ) : 'No Image'}
+                        </td>
+                        <td className="p-3 sm:p-4 text-sm sm:text-base">
+                          {submission.quiz_score !== null ? `${submission.quiz_score}%` : 'N/A'}
                         </td>
                       </tr>
                     ))}
@@ -746,7 +753,7 @@ export function MembersPortal() {
               ) : quizResult ? (
                 <>
                   <p className={`text-sm sm:text-base mb-4 ${quizResult === 'passed' ? 'text-green-500' : 'text-red-500'}`}>
-                    You scored {finalScore?.toFixed(0)}%!{' '}
+                    You scored {finalScore}%!{' '}
                     {quizResult === 'passed'
                       ? 'Congratulations, you passed! You can now proceed to submit your task.'
                       : 'Sorry, you need at least 75% to proceed.'}

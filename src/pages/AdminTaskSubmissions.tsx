@@ -1,4 +1,3 @@
-// src/pages/AdminTaskSubmissions.tsx
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Card } from '../components/ui/Card';
@@ -10,6 +9,7 @@ export function AdminTaskSubmissions() {
   const [filterBatch, setFilterBatch] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: number; image_url: string | null } | null>(null); // State for delete confirmation
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,6 +42,32 @@ export function AdminTaskSubmissions() {
       ));
     } catch (err) {
       setError(err.message || 'Failed to update status');
+    }
+  };
+
+  const deleteSubmission = async (submissionId: number, imageUrl: string | null) => {
+    try {
+      // Step 1: Delete the associated image from storage if it exists
+      if (imageUrl) {
+        const filePath = imageUrl.split('/').pop(); // Extract the file name from the URL
+        const { error: storageError } = await supabase.storage
+          .from('task-submissions-images')
+          .remove([`public/${filePath}`]);
+        if (storageError) throw storageError;
+      }
+
+      // Step 2: Delete the submission from the task_submissions table
+      const { error: deleteError } = await supabase
+        .from('task_submissions')
+        .delete()
+        .eq('id', submissionId);
+      if (deleteError) throw deleteError;
+
+      // Step 3: Update the UI by removing the deleted submission
+      setData(data.filter((item) => item.id !== submissionId));
+      setDeleteConfirmation(null); // Close the confirmation dialog
+    } catch (err) {
+      setError(err.message || 'Failed to delete submission');
     }
   };
 
@@ -98,6 +124,8 @@ export function AdminTaskSubmissions() {
                 <th className="border p-2 sm:p-3 text-left">Timestamp</th>
                 <th className="border p-2 sm:p-3 text-left">Status</th>
                 <th className="border p-2 sm:p-3 text-left">Image URL</th>
+                <th className="border p-2 sm:p-3 text-left">Quiz Score</th>
+                <th className="border p-2 sm:p-3 text-left">Actions</th> {/* New column for delete button */}
               </tr>
             </thead>
             <tbody>
@@ -131,6 +159,18 @@ export function AdminTaskSubmissions() {
                       </a>
                     ) : 'No Image'}
                   </td>
+                  <td className="border p-2 sm:p-3">
+                    {row.quiz_score !== null ? `${row.quiz_score}%` : 'N/A'}
+                  </td>
+                  <td className="border p-2 sm:p-3">
+                    <Button
+                      variant="danger" // Assuming your Button component has a 'danger' variant for red styling
+                      className="px-3 py-1 text-sm"
+                      onClick={() => setDeleteConfirmation({ id: row.id, image_url: row.image_url })}
+                    >
+                      Delete
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -141,7 +181,7 @@ export function AdminTaskSubmissions() {
           className="mt-6 w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300 text-sm sm:text-base"
           onClick={() => {
             const csv = [
-              ['Task Name', 'Name', 'Email', 'Phone', 'Year', 'Discipline', 'Program', 'Registration Number', 'Batch', 'Timestamp', 'Status', 'Image URL'],
+              ['Task Name', 'Name', 'Email', 'Phone', 'Year', 'Discipline', 'Program', 'Registration Number', 'Batch', 'Timestamp', 'Status', 'Image URL', 'Quiz Score'],
               ...filteredData.map((row) => [
                 row.event_name,
                 row.name,
@@ -155,6 +195,7 @@ export function AdminTaskSubmissions() {
                 new Date(row.timestamp).toLocaleString(),
                 row.status,
                 row.image_url || '',
+                row.quiz_score !== null ? `${row.quiz_score}%` : 'N/A',
               ]),
             ].map((e) => e.join(',')).join('\n');
             const blob = new Blob([csv], { type: 'text/csv' });
@@ -168,6 +209,34 @@ export function AdminTaskSubmissions() {
           Export to CSV
         </Button>
       </Card>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="p-6 max-w-sm w-full rounded-lg shadow-lg backdrop-blur-md bg-white/10 border border-white/20">
+            <h3 className="text-xl font-semibold text-red-400 mb-4">Confirm Deletion</h3>
+            <p className="text-gray-300 text-sm mb-6">
+              Are you sure you want to delete this submission? This action cannot be undone.
+            </p>
+            <div className="flex justify-between gap-4">
+              <Button
+                variant="danger"
+                className="w-full py-2 text-sm"
+                onClick={() => deleteSubmission(deleteConfirmation.id, deleteConfirmation.image_url)}
+              >
+                Yes, Delete
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full py-2 text-sm"
+                onClick={() => setDeleteConfirmation(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
