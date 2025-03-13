@@ -1,35 +1,50 @@
-// src/pages/AdminDashboard.tsx
 import { useState } from 'react';
+import { Button } from '../components/ui/Button';
 import { AdminEvents } from './AdminEvents';
 import { AdminTaskSubmissions } from './AdminTaskSubmissions';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
+import { AdminTasks } from './AdminTasks'; // New import
 
 export function AdminDashboard() {
-  const [activeSection, setActiveSection] = useState<'events' | 'tasks'>('events');
+  const [activeTab, setActiveTab] = useState<'events' | 'submissions' | 'tasks'>('events');
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAdmin');
+    window.location.href = '/#/admin/login';
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <Card className="p-4 sm:p-6 bg-navy-light border-2 border-cyan rounded-lg shadow-lg">
-        <h2 className="text-2xl sm:text-3xl font-bold text-cyan text-center mb-6">Admin Dashboard</h2>
-        <div className="flex flex-col sm:flex-row justify-center mb-6 space-y-4 sm:space-y-0 sm:space-x-4">
-          <Button
-            variant={activeSection === 'events' ? 'primary' : 'secondary'}
-            className="w-full sm:w-auto px-4 py-2 text-sm sm:text-base"
-            onClick={() => setActiveSection('events')}
-          >
-            Event Registrations
-          </Button>
-          <Button
-            variant={activeSection === 'tasks' ? 'primary' : 'secondary'}
-            className="w-full sm:w-auto px-4 py-2 text-sm sm:text-base"
-            onClick={() => setActiveSection('tasks')}
-          >
-            Task Submissions
-          </Button>
-        </div>
-        {activeSection === 'events' ? <AdminEvents /> : <AdminTaskSubmissions />}
-      </Card>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-cyan">Admin Dashboard</h1>
+        <Button onClick={handleLogout} variant="secondary">
+          Logout
+        </Button>
+      </div>
+
+      <div className="flex flex-wrap gap-4 mb-6">
+        <Button
+          variant={activeTab === 'events' ? 'primary' : 'secondary'}
+          onClick={() => setActiveTab('events')}
+        >
+          Event Registrations
+        </Button>
+        <Button
+          variant={activeTab === 'submissions' ? 'primary' : 'secondary'}
+          onClick={() => setActiveTab('submissions')}
+        >
+          Task Submissions
+        </Button>
+        <Button
+          variant={activeTab === 'tasks' ? 'primary' : 'secondary'}
+          onClick={() => setActiveTab('tasks')}
+        >
+          Manage Tasks
+        </Button>
+      </div>
+
+      {activeTab === 'events' && <AdminEvents />}
+      {activeTab === 'submissions' && <AdminTaskSubmissions />}
+      {activeTab === 'tasks' && <AdminTasks />}
     </div>
   );
 }

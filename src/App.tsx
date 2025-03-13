@@ -9,10 +9,9 @@ import Contact from './pages/Contact';
 import EventDetails from './pages/EventDetails';
 import { AdminLogin } from './components/AdminLogin';
 import { AdminEvents } from './pages/AdminEvents';
-import { TaskSubmissions } from './pages/TaskSubmissions';
-import { TaskDetails } from './pages/TaskDetails';
 import { AdminTaskSubmissions } from './pages/AdminTaskSubmissions';
-import { AdminDashboard } from './pages/AdminDashboard'; // New import
+import { AdminDashboard } from './pages/AdminDashboard';
+import { MembersPortal } from './pages/MembersPortal';
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
@@ -33,8 +32,7 @@ export default function App() {
             <Route path="/ctfs" element={<CTFs />} />
             <Route path="/team" element={<Team />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/task-submissions" element={<TaskSubmissions />} />
-            <Route path="/task-details/:taskId" element={<TaskDetails />} />
+            <Route path="/members-portal" element={<MembersPortal />} />
             <Route path="/event/:id" element={<EventDetails />} />
 
             {/* Admin Routes */}

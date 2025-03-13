@@ -20,7 +20,7 @@ export default function Header() {
     { name: 'CTFs', path: '/ctfs' },
     { name: 'Team', path: '/team' },
     { name: 'Contact', path: '/contact' },
-    { name: 'Admin', path:'/admin/login'}
+    { name: 'Members Portal', path: '/members-portal' }, // Added Members Portal link
   ];
 
   return (
@@ -35,9 +35,9 @@ export default function Header() {
         <div className="flex justify-between items-center py-4">
           <NavLink to="/" className="flex items-center space-x-2">
             <img
-              src="https://res.cloudinary.com/dae56bvjp/image/upload/v1734460980/6_ygaqii.webp" // Replace with your club logo path
+              src="https://res.cloudinary.com/dae56bvjp/image/upload/v1734460980/6_ygaqii.webp"
               alt="HackOps Club Logo"
-              className="h-8 w-auto" //
+              className="h-8 w-auto"
             />
             <span className="text-xl font-bold text-white">HackOps Club</span>
           </NavLink>

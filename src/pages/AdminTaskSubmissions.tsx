@@ -6,8 +6,8 @@ import { Button } from '../components/ui/Button';
 
 export function AdminTaskSubmissions() {
   const [data, setData] = useState<any[]>([]);
-  const [filterTaskName, setFilterTaskName] = useState<string>(''); // Filter by event_name (task name)
-  const [filterBatch, setFilterBatch] = useState<string>(''); // Filter by batch
+  const [filterTaskName, setFilterTaskName] = useState<string>('');
+  const [filterBatch, setFilterBatch] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,11 +29,24 @@ export function AdminTaskSubmissions() {
     fetchData();
   }, []);
 
-  // Extract unique task names and batches for filters
+  const updateStatus = async (submissionId: number, newStatus: string) => {
+    try {
+      const { error: updateError } = await supabase
+        .from('task_submissions')
+        .update({ status: newStatus })
+        .eq('id', submissionId);
+      if (updateError) throw updateError;
+
+      setData(data.map((item) =>
+        item.id === submissionId ? { ...item, status: newStatus } : item
+      ));
+    } catch (err) {
+      setError(err.message || 'Failed to update status');
+    }
+  };
+
   const taskNames = [...new Set(data.map((item) => item.event_name))];
   const batches = [...new Set(data.map((item) => item.batch))];
-
-  // Filter data
   const filteredData = data.filter((item) => {
     const taskMatch = !filterTaskName || item.event_name === filterTaskName;
     const batchMatch = !filterBatch || item.batch === filterBatch;
@@ -83,6 +96,7 @@ export function AdminTaskSubmissions() {
                 <th className="border p-2 sm:p-3 text-left">Registration Number</th>
                 <th className="border p-2 sm:p-3 text-left">Batch</th>
                 <th className="border p-2 sm:p-3 text-left">Timestamp</th>
+                <th className="border p-2 sm:p-3 text-left">Status</th>
                 <th className="border p-2 sm:p-3 text-left">Image URL</th>
               </tr>
             </thead>
@@ -100,6 +114,17 @@ export function AdminTaskSubmissions() {
                   <td className="border p-2 sm:p-3">{row.batch}</td>
                   <td className="border p-2 sm:p-3">{new Date(row.timestamp).toLocaleString()}</td>
                   <td className="border p-2 sm:p-3">
+                    <select
+                      value={row.status}
+                      onChange={(e) => updateStatus(row.id, e.target.value)}
+                      className="p-1 rounded bg-navy text-white border border-gray-800 focus:border-cyan focus:outline-none"
+                    >
+                      <option value="Pending Review">Pending Review</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                  </td>
+                  <td className="border p-2 sm:p-3">
                     {row.image_url ? (
                       <a href={row.image_url} target="_blank" rel="noopener noreferrer" className="text-cyan underline">
                         View Image
@@ -116,7 +141,7 @@ export function AdminTaskSubmissions() {
           className="mt-6 w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300 text-sm sm:text-base"
           onClick={() => {
             const csv = [
-              ['Task Name', 'Name', 'Email', 'Phone', 'Year', 'Discipline', 'Program', 'Registration Number', 'Batch', 'Timestamp', 'Image URL'],
+              ['Task Name', 'Name', 'Email', 'Phone', 'Year', 'Discipline', 'Program', 'Registration Number', 'Batch', 'Timestamp', 'Status', 'Image URL'],
               ...filteredData.map((row) => [
                 row.event_name,
                 row.name,
@@ -128,6 +153,7 @@ export function AdminTaskSubmissions() {
                 row.registration_number,
                 row.batch,
                 new Date(row.timestamp).toLocaleString(),
+                row.status,
                 row.image_url || '',
               ]),
             ].map((e) => e.join(',')).join('\n');
