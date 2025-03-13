@@ -73,7 +73,7 @@ export const events: Event[] = [
     eventImages:[],
     status: 'upcoming',
     certificateLink:"#",
-    registrationStatus: 'started',
+    registrationStatus: 'notStarted',
     useCustomForm:true,
     registrationLink: 'https://forms.example.com/network-security-webinar',
     detailsLink: '#s',
