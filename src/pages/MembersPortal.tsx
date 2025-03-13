@@ -17,6 +17,17 @@ interface Task {
   use_custom_form: boolean;
 }
 
+interface QuizQuestion {
+  id: string;
+  task_id: string;
+  question: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_answer: string;
+}
+
 interface FormData {
   event_name: string;
   name: string;
@@ -39,19 +50,23 @@ export function MembersPortal() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [submissionTask, setSubmissionTask] = useState<Task | null>(null);
-  const [deadlineCrossedTask, setDeadlineCrossedTask] = useState<Task | null>(null); // New state for deadline crossed pop-up
+  const [deadlineCrossedTask, setDeadlineCrossedTask] = useState<Task | null>(null);
+  const [quizTask, setQuizTask] = useState<Task | null>(null);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [userAnswers, setUserAnswers] = useState<{ [key: number]: string }>({});
   const [searchParams, setSearchParams] = useSearchParams();
-
   const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [quizResult, setQuizResult] = useState<'passed' | 'failed' | null>(null);
+  const [finalScore, setFinalScore] = useState<number | null>(null); // New state for final score
 
   const { register, handleSubmit, watch, control, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
     defaultValues: { event_name: '', batch: '' },
   });
   const discipline = watch('discipline');
 
-  // Current date (hardcoded as per your instruction, March 13, 2025)
   const currentDate = new Date('2025-03-13');
 
   useEffect(() => {
@@ -70,6 +85,29 @@ export function MembersPortal() {
 
     fetchTasks();
   }, []);
+
+  useEffect(() => {
+    if (quizTask) {
+      fetchQuizQuestions(quizTask.id);
+    }
+  }, [quizTask]);
+
+  const fetchQuizQuestions = async (taskId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('task_quizzes')
+        .select('*')
+        .eq('task_id', taskId);
+      if (error) throw error;
+      setQuizQuestions(data || []);
+      setCurrentQuestionIndex(0);
+      setUserAnswers({});
+      setQuizResult(null);
+      setFinalScore(null);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch quiz questions.');
+    }
+  };
 
   const handleFetchSubmissions = async () => {
     setLoading(true);
@@ -175,7 +213,7 @@ export function MembersPortal() {
       'BBA (Business Analytics)',
       'BBA (Financial Markets)',
     ],
-    Other: ['Other'],
+    Other: ['II Year B.Optometry'],
   };
   const batchOptions = ['Wednesday Batch', 'Thursday Batch'];
 
@@ -183,17 +221,40 @@ export function MembersPortal() {
     className: 'text-cyan underline hover:text-blue-400 transition-colors duration-200',
   };
 
-  // Animation variants for macOS-like effect
   const popupVariants = {
     hidden: { opacity: 0, scale: 0.95 },
     visible: { opacity: 1, scale: 1, transition: { duration: 0.2, ease: 'easeOut' } },
     exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2, ease: 'easeIn' } },
   };
 
-  // Check if deadline is crossed
   const isDeadlineCrossed = (deadline: string) => {
     const deadlineDate = new Date(deadline);
     return deadlineDate < currentDate;
+  };
+
+  const calculateQuizScore = () => {
+    if (!quizQuestions.length) return 0;
+    let correctCount = 0;
+    quizQuestions.forEach((question, index) => {
+      if (userAnswers[index] === question.correct_answer) correctCount++;
+    });
+    return (correctCount / quizQuestions.length) * 100;
+  };
+
+  const handleQuizSubmit = () => {
+    const score = calculateQuizScore();
+    setFinalScore(score); // Store the final score
+    if (score >= 75) {
+      setQuizResult('passed');
+      setQuizTask(null);
+      setSubmissionTask(quizTask); // Open submission form
+    } else {
+      setQuizResult('failed');
+    }
+  };
+
+  const getOptionText = (question: QuizQuestion, option: string) => {
+    return question[`option_${option}` as keyof QuizQuestion];
   };
 
   return (
@@ -253,7 +314,7 @@ export function MembersPortal() {
                           if (isDeadlineCrossed(task.submission_deadline)) {
                             setDeadlineCrossedTask(task);
                           } else {
-                            setSubmissionTask(task);
+                            setQuizTask(task);
                           }
                         }}
                       >
@@ -596,7 +657,7 @@ export function MembersPortal() {
               <p className="text-gray-300 text-sm sm:text-base mb-6">
                 Oh no! The deadline for <strong>{deadlineCrossedTask.task_name}</strong> has passed on{' '}
                 {new Date(deadlineCrossedTask.submission_deadline).toLocaleDateString()}. Unfortunately, submissions are no
-                longer accepted for this task. Please check for upcoming opportunities or contact your tech lead if you
+                longer accepted for this task. Please check for upcoming opportunities or contact the coordinator if you
                 believe this is an error. Stay proactive for future tasks!
               </p>
               <Button
@@ -610,12 +671,142 @@ export function MembersPortal() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Glassmorphism Pop-up for Quiz */}
+      <AnimatePresence>
+        {quizTask && quizQuestions.length > 0 && (
+          <motion.div
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              variants={popupVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="p-4 sm:p-6 max-w-lg w-full rounded-lg shadow-lg backdrop-blur-md bg-white/10 border border-white/20 max-h-[90vh] overflow-y-auto"
+              style={{ backdropFilter: 'blur(10px)' }}
+            >
+              <h2 className="text-2xl sm:text-3xl font-bold text-cyan mb-6">Quiz for {quizTask.task_name}</h2>
+              {currentQuestionIndex < quizQuestions.length && !quizResult ? (
+                <>
+                  <p className="text-gray-300 text-sm sm:text-base mb-4">
+                    Question {currentQuestionIndex + 1} of {quizQuestions.length}
+                  </p>
+                  <p className="text-white mb-4 text-sm sm:text-base">{quizQuestions[currentQuestionIndex].question}</p>
+                  <div className="space-y-2">
+                    {['a', 'b', 'c', 'd'].map((option) => (
+                      <label key={option} className="flex items-center text-sm sm:text-base">
+                        <input
+                          type="radio"
+                          name="quizOption"
+                          value={option}
+                          checked={userAnswers[currentQuestionIndex] === option}
+                          onChange={(e) => {
+                            setUserAnswers({ ...userAnswers, [currentQuestionIndex]: e.target.value });
+                          }}
+                          className="mr-2"
+                        />
+                        {option.toUpperCase()}: {quizQuestions[currentQuestionIndex][`option_${option}`]}
+                      </label>
+                    ))}
+                  </div>
+                  <div className="mt-6 flex justify-between">
+                    {currentQuestionIndex > 0 && (
+                      <Button
+                        variant="secondary"
+                        className="py-2 sm:py-3 text-base sm:text-lg"
+                        onClick={() => setCurrentQuestionIndex(currentQuestionIndex - 1)}
+                      >
+                        Previous
+                      </Button>
+                    )}
+                    {currentQuestionIndex < quizQuestions.length - 1 ? (
+                      <Button
+                        variant="primary"
+                        className="py-2 sm:py-3 text-base sm:text-lg"
+                        onClick={() => setCurrentQuestionIndex(currentQuestionIndex + 1)}
+                      >
+                        Next
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        className="py-2 sm:py-3 text-base sm:text-lg"
+                        onClick={handleQuizSubmit}
+                      >
+                        Submit Quiz
+                      </Button>
+                    )}
+                  </div>
+                </>
+              ) : quizResult ? (
+                <>
+                  <p className={`text-sm sm:text-base mb-4 ${quizResult === 'passed' ? 'text-green-500' : 'text-red-500'}`}>
+                    You scored {finalScore?.toFixed(0)}%!{' '}
+                    {quizResult === 'passed'
+                      ? 'Congratulations, you passed! You can now proceed to submit your task.'
+                      : 'Sorry, you need at least 75% to proceed.'}
+                  </p>
+                  {quizResult === 'failed' && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-white mb-2">Review Your Answers:</h3>
+                      {quizQuestions.map((question, index) => {
+                        const userAnswer = userAnswers[index];
+                        const isCorrect = userAnswer === question.correct_answer;
+                        return (
+                          <div key={index} className="mb-4">
+                            <p className="text-white text-sm sm:text-base">{index + 1}. {question.question}</p>
+                            <p className="text-gray-300 text-sm sm:text-base">
+                              Your Answer: {userAnswer ? `${userAnswer.toUpperCase()}: ${getOptionText(question, userAnswer)}` : 'Not answered'}
+                            </p>
+                            {!isCorrect && (
+                              <p className="text-red-500 text-sm sm:text-base">
+                                Incorrect! Correct Answer: {question.correct_answer.toUpperCase()}: {getOptionText(question, question.correct_answer)}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {quizResult === 'failed' && (
+                    <Button
+                      variant="primary"
+                      className="w-full py-2 sm:py-3 text-base sm:text-lg"
+                      onClick={() => {
+                        setCurrentQuestionIndex(0);
+                        setUserAnswers({});
+                        setQuizResult(null);
+                        setFinalScore(null);
+                      }}
+                    >
+                      Retake Quiz
+                    </Button>
+                  )}
+                </>
+              ) : null}
+              <Button
+                variant="secondary"
+                className="w-full mt-4 py-2 sm:py-3 text-base sm:text-lg"
+                onClick={() => {
+                  setQuizTask(null);
+                  setQuizQuestions([]);
+                  setCurrentQuestionIndex(0);
+                  setUserAnswers({});
+                  setQuizResult(null);
+                  setFinalScore(null);
+                }}
+              >
+                Cancel
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
-
-/*
-it should show in the admin portal only !!!!! 
-and it should also gather the existing info in the db to show the stats for that task !
-It should show statiscs for each event for the parameters like 
-Year , Branch , Submissions */
