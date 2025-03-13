@@ -5,7 +5,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import Linkify from 'react-linkify';
 import { useForm, Controller } from 'react-hook-form';
-import { motion, AnimatePresence } from 'framer-motion'; // Import Framer Motion
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Task {
   id: string;
@@ -39,6 +39,7 @@ export function MembersPortal() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [submissionTask, setSubmissionTask] = useState<Task | null>(null);
+  const [deadlineCrossedTask, setDeadlineCrossedTask] = useState<Task | null>(null); // New state for deadline crossed pop-up
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
@@ -49,6 +50,9 @@ export function MembersPortal() {
     defaultValues: { event_name: '', batch: '' },
   });
   const discipline = watch('discipline');
+
+  // Current date (hardcoded as per your instruction, March 13, 2025)
+  const currentDate = new Date('2025-03-13');
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -186,6 +190,12 @@ export function MembersPortal() {
     exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2, ease: 'easeIn' } },
   };
 
+  // Check if deadline is crossed
+  const isDeadlineCrossed = (deadline: string) => {
+    const deadlineDate = new Date(deadline);
+    return deadlineDate < currentDate;
+  };
+
   return (
     <div className="min-h-screen bg-navy-light text-white p-4 sm:p-6 lg:p-8">
       <Card className="p-6 sm:p-8 bg-navy border-2 border-cyan rounded-lg shadow-lg">
@@ -239,7 +249,13 @@ export function MembersPortal() {
                       <Button
                         variant="primary"
                         className="w-full py-3 text-lg"
-                        onClick={() => setSubmissionTask(task)}
+                        onClick={() => {
+                          if (isDeadlineCrossed(task.submission_deadline)) {
+                            setDeadlineCrossedTask(task);
+                          } else {
+                            setSubmissionTask(task);
+                          }
+                        }}
                       >
                         Submit Task
                       </Button>
@@ -553,6 +569,43 @@ export function MembersPortal() {
               {submissionStatus === 'error' && submissionError && (
                 <div className="mt-6 text-red-500 text-sm sm:text-lg">{submissionError}</div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Glassmorphism Pop-up for Deadline Crossed */}
+      <AnimatePresence>
+        {deadlineCrossedTask && (
+          <motion.div
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              variants={popupVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="p-6 max-w-lg w-full rounded-lg shadow-lg backdrop-blur-md bg-white/10 border border-white/20"
+              style={{ backdropFilter: 'blur(10px)' }}
+            >
+              <h3 className="text-xl sm:text-2xl font-semibold text-red-400 mb-4">Deadline Alert</h3>
+              <p className="text-gray-300 text-sm sm:text-base mb-6">
+                Oh no! The deadline for <strong>{deadlineCrossedTask.task_name}</strong> has passed on{' '}
+                {new Date(deadlineCrossedTask.submission_deadline).toLocaleDateString()}. Unfortunately, submissions are no
+                longer accepted for this task. Please check for upcoming opportunities or contact your tech lead if you
+                believe this is an error. Stay proactive for future tasks!
+              </p>
+              <Button
+                variant="secondary"
+                className="w-full py-3 text-base sm:text-lg"
+                onClick={() => setDeadlineCrossedTask(null)}
+              >
+                Close
+              </Button>
             </motion.div>
           </motion.div>
         )}
