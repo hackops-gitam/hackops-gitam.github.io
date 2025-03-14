@@ -21,6 +21,7 @@ export default function Header() {
     { name: 'Team', path: '/team' },
     { name: 'Contact', path: '/contact' },
     { name: 'Members Portal', path: '/members-portal' }, // Added Members Portal link
+    {name: 'Admin' , path:'/admin'}
   ];
 
   return (
