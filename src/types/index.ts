@@ -20,3 +20,18 @@ export interface Event {
   };
 }
 export interface TeamMember{}
+
+// types.ts
+export interface CTFEvent {
+  id: string;
+  title: string;
+  organizer: string;
+  startDate: string;
+  endDate: string;
+  format: 'jeopardy' | 'attack-defense';
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  registrationLink: string;
+  description: string;
+  weight: number;
+  location: string;
+}

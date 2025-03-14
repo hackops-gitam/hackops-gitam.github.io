@@ -8,10 +8,16 @@ export default function ParticlesBackground() {
     await loadFull(engine);
   }, []);
 
+  const particlesLoaded = useCallback(async (container: any) => {
+    // Optional: Log when particles are fully loaded for debugging
+    console.log('Particles container loaded:', container);
+  }, []);
+
   return (
     <Particles
       id="tsparticles"
       init={particlesInit}
+      loaded={particlesLoaded} // Optional callback for debugging
       options={{
         fullScreen: {
           enable: true,
@@ -19,13 +25,13 @@ export default function ParticlesBackground() {
         },
         background: {
           color: {
-            value: '#0a192f',
+            value: '#0a192f', // Dark navy background
           },
         },
-        fpsLimit: 120,
+        fpsLimit: 60, // Cap frame rate to prevent performance spikes
         particles: {
           color: {
-            value: '#64ffda',
+            value: '#64ffda', // Cyan particle color
           },
           links: {
             color: '#64ffda',
@@ -40,19 +46,19 @@ export default function ParticlesBackground() {
           },
           collisions: {
             enable: true,
+            mode: 'bounce', // Ensure collisions don't accelerate particles
           },
           move: {
             enable: true,
             outModes: {
-              default: 'bounce',
+              default: 'bounce', // Particles bounce off edges
             },
             random: true,
-            speed: 1,
+            speed: 1, // Fixed speed
             straight: false,
             attract: {
-              enable: true,
-              rotateX: 600,
-              rotateY: 1200,
+              enable: false, // Disable attract to prevent speed increase over time
+              // If you want attract, use lower values: rotateX: 300, rotateY: 600
             },
           },
           number: {
@@ -60,7 +66,7 @@ export default function ParticlesBackground() {
               enable: true,
               area: 800,
             },
-            value: 80,
+            value: 80, // Number of particles
           },
           opacity: {
             value: 0.3,
@@ -73,7 +79,7 @@ export default function ParticlesBackground() {
             },
           },
           shape: {
-            type: ['circle', 'triangle'],
+            type: ['circle', 'triangle', 'polygon'], // Added polygon for variety
           },
           size: {
             value: { min: 1, max: 3 },
@@ -90,12 +96,13 @@ export default function ParticlesBackground() {
           events: {
             onHover: {
               enable: true,
-              mode: 'grab',
+              mode: 'grab', // Attracts particles on hover but won't accelerate
             },
             onClick: {
               enable: true,
-              mode: 'push',
+              mode: 'push', // Adds particles on click without speeding up existing ones
             },
+            resize: true, // Ensures particles adapt to window resize without speed changes
           },
           modes: {
             grab: {
@@ -110,8 +117,10 @@ export default function ParticlesBackground() {
           },
         },
         detectRetina: true,
+        // Add a preset to stabilize animation
+        preset: 'links', // Use a stable preset to maintain consistency
       }}
-      className="fixed inset-0"
+      className="fixed inset-0 pointer-events-none" // Prevents interference with other elements
     />
   );
 }
