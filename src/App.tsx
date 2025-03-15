@@ -8,10 +8,9 @@ import Team from './pages/Team';
 import Contact from './pages/Contact';
 import EventDetails from './pages/EventDetails';
 import { AdminLogin } from './components/AdminLogin';
-import { AdminEvents } from './pages/AdminEvents';
-import { AdminTaskSubmissions } from './pages/AdminTaskSubmissions';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { MembersPortal } from './pages/MembersPortal';
+import { TaskDetails } from './pages/TaskDetails';
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
@@ -34,6 +33,7 @@ export default function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/members-portal" element={<MembersPortal />} />
             <Route path="/event/:id" element={<EventDetails />} />
+            <Route path="/task-details/:taskId" element={<TaskDetails />} />
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />

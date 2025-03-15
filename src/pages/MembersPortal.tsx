@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import Linkify from 'react-linkify';
+import Linkify from 'react-linkify'; // Single import at the top
 import { useForm, Controller } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -86,9 +86,32 @@ export function MembersPortal() {
     fetchTasks();
   }, []);
 
+  // Handle query parameters to trigger quiz and submission
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const submitTaskId = searchParams.get('submitTaskId');
+
+    if (tab) {
+      setActiveTab(tab as 'submissions' | 'status');
+    }
+
+    if (submitTaskId && tasks.length > 0) {
+      const task = tasks.find((t) => t.id === submitTaskId);
+      if (task && task.use_custom_form) {
+        if (isDeadlineCrossed(task.submission_deadline)) {
+          setDeadlineCrossedTask(task);
+        } else {
+          setQuizTask(task);
+        }
+      }
+      // Clear the query params after handling
+      setSearchParams({});
+    }
+  }, [searchParams, tasks, setSearchParams]);
+
   useEffect(() => {
     if (quizTask) {
-      fetchQuizQuestions(quizTask.id);
+      fetchQuizQuestions(quizTask.task_id); // Use task_id for quiz lookup
     }
   }, [quizTask]);
 
@@ -169,7 +192,7 @@ export function MembersPortal() {
         timestamp: new Date().toISOString(),
         batch: data.batch,
         image_url: imageUrl,
-        quiz_score: finalScore ? Math.round(finalScore) : null, // Round the score to an integer
+        quiz_score: finalScore ? Math.round(finalScore) : null,
       });
       if (dbError) throw dbError;
 
@@ -241,7 +264,7 @@ export function MembersPortal() {
       if (userAnswers[index] === question.correct_answer) correctCount++;
     });
     const score = (correctCount / quizQuestions.length) * 100;
-    return Math.round(score); // Round the score to the nearest integer
+    return Math.round(score);
   };
 
   const handleQuizSubmit = () => {

@@ -1,5 +1,4 @@
-// src/components/TaskSubmissionForm.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Added useEffect for initial render check
 import { useForm, Controller } from 'react-hook-form';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -15,7 +14,9 @@ interface FormData {
   program: string;
   registration_number: string;
   batch: string;
-  image: FileList;
+  image?: FileList;
+  learnings: string;
+  doc_links?: string;
 }
 
 interface TaskSubmissionFormProps {
@@ -64,21 +65,32 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
   });
   const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [submissionError, setSubmissionError] = useState<string | null>(null); // Track specific errors
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    console.log('TaskSubmissionForm mounted with eventName:', eventName);
+    console.log('Rendering form - Checking all fields');
+  }, [eventName]);
+
   const discipline = watch('discipline');
+  const learningsText = watch('learnings') || '';
+  const wordCount = learningsText.trim().split(/\s+/).filter(Boolean).length;
 
   const onFormSubmit = async (data: FormData) => {
-    setSubmissionError(null); // Clear previous errors
-    console.log('Form data:', data); // Log form data for debugging
+    setSubmissionError(null);
+    console.log('Form data submitted:', data);
 
     try {
-      // Upload image to Supabase Storage
-      const file = data.image[0];
+      if (wordCount < 100 || wordCount > 200) {
+        throw new Error('Your response for "What did you learn?" must be between 100 and 200 words.');
+      }
+
       let imageUrl = null;
-      if (file) {
-        console.log('Uploading image:', file.name);
-        const fileName = `${Date.now()}_${file.name}`;
-        const { error: uploadError, data: uploadData } = await supabase.storage
+      if (data.image && data.image.length > 0) {
+        const file = data.image[0];
+        console.log('Uploading image:', file?.name);
+        const fileName = `${Date.now()}_${file?.name || 'image'}`;
+        const { error: uploadError } = await supabase.storage
           .from('task-submissions-images')
           .upload(`public/${fileName}`, file, {
             cacheControl: '3600',
@@ -92,20 +104,7 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
         console.log('Image URL generated:', imageUrl);
       }
 
-      // Insert data into task_submissions table
-      console.log('Inserting data into task_submissions:', {
-        event_name: data.event_name,
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        year: data.year,
-        discipline: data.discipline,
-        program: data.program,
-        registration_number: data.registration_number,
-        timestamp: new Date().toISOString(),
-        batch: data.batch,
-        image_url: imageUrl,
-      });
+      console.log('Submitting to database with doc_links:', data.doc_links);
       const { error: dbError } = await supabase.from('task_submissions').insert({
         event_name: data.event_name,
         name: data.name,
@@ -118,6 +117,8 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
         timestamp: new Date().toISOString(),
         batch: data.batch,
         image_url: imageUrl,
+        learnings: data.learnings,
+        doc_links: data.doc_links || null,
       });
       if (dbError) {
         console.error('Database error details:', dbError);
@@ -136,7 +137,6 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
     <Card className="mt-6 p-6 bg-navy-light border-cyan">
       <h2 className="text-2xl font-bold text-cyan mb-6">Task Submission</h2>
       <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
-        {/* Event Name (Read-only) */}
         <div>
           <label className="block text-white">Event Name</label>
           <input
@@ -146,8 +146,6 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
             className="w-full p-2 rounded bg-navy text-white border border-gray-800"
           />
         </div>
-
-        {/* Name */}
         <div>
           <label className="block text-white">Name</label>
           <input
@@ -156,8 +154,6 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
           />
           {errors.name && <p className="text-red-500">{errors.name.message}</p>}
         </div>
-
-        {/* Email */}
         <div>
           <label className="block text-white">Email</label>
           <input
@@ -169,8 +165,6 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
           />
           {errors.email && <p className="text-red-500">{errors.email.message}</p>}
         </div>
-
-        {/* Phone */}
         <div>
           <label className="block text-white">Phone</label>
           <input
@@ -182,8 +176,6 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
           />
           {errors.phone && <p className="text-red-500">{errors.phone.message}</p>}
         </div>
-
-        {/* Year (Dropdown) */}
         <div>
           <label className="block text-white">Year</label>
           <select
@@ -197,8 +189,6 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
           </select>
           {errors.year && <p className="text-red-500">{errors.year.message}</p>}
         </div>
-
-        {/* Discipline */}
         <div>
           <label className="block text-white">Discipline</label>
           <select
@@ -212,8 +202,6 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
           </select>
           {errors.discipline && <p className="text-red-500">{errors.discipline.message}</p>}
         </div>
-
-        {/* Program (Conditional) */}
         {discipline && (
           <div>
             <label className="block text-white">Program</label>
@@ -236,8 +224,6 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
             {errors.program && <p className="text-red-500">{errors.program.message}</p>}
           </div>
         )}
-
-        {/* Registration Number */}
         <div>
           <label className="block text-white">Registration Number</label>
           <input
@@ -247,8 +233,6 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
           />
           {errors.registration_number && <p className="text-red-500">{errors.registration_number.message}</p>}
         </div>
-
-        {/* Batch (Dropdown) */}
         <div>
           <label className="block text-white">Batch</label>
           <select
@@ -262,19 +246,19 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
           </select>
           {errors.batch && <p className="text-red-500">{errors.batch.message}</p>}
         </div>
-
-        {/* Image Upload */}
         <div>
-          <label className="block text-white">Upload Task Image</label>
+          <label className="block text-white">Upload Task Image (Optional)</label>
           <input
             type="file"
             accept="image/*"
-            {...register('image', { required: 'Image is required' })}
+            {...register('image')}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
                 const previewUrl = URL.createObjectURL(file);
                 setImagePreview(previewUrl);
+              } else {
+                setImagePreview(null);
               }
             }}
             className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
@@ -286,14 +270,32 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
             </div>
           )}
         </div>
-
-        {/* Submit Button */}
+        <div>
+          <label className="block text-white">What did you learn from this task? Please explain your key takeaways from this task (100–200 words)</label>
+          <textarea
+            {...register('learnings', { required: 'This field is required' })}
+            className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
+            rows={6}
+          />
+          <p className="text-gray-400 text-sm mt-1">Word count: {wordCount} (100–200 words required)</p>
+          {errors.learnings && <p className="text-red-500">{errors.learnings.message}</p>}
+        </div>
+        <div>
+          <label className="block text-white">Add links to PDFs/Docs (Optional)</label>
+          <input
+            type="url"
+            {...register('doc_links', {
+              pattern: { value: /^(https?:\/\/[^\s]+)?$/, message: 'Invalid URL format' },
+            })}
+            className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
+            placeholder="https://example.com/document.pdf"
+          />
+          {errors.doc_links && <p className="text-red-500">{errors.doc_links.message}</p>}
+        </div>
         <Button type="submit" variant="primary" disabled={isSubmitting}>
           {isSubmitting ? 'Submitting...' : 'Submit Task'}
         </Button>
       </form>
-
-      {/* Submission Feedback */}
       {submissionStatus === 'success' && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
           <Card className="p-6 max-w-md text-center">

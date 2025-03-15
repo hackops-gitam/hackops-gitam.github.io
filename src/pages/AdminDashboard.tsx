@@ -7,7 +7,14 @@ import { supabase } from '../supabaseClient';
 
 interface Task {
   id: string;
+  task_id: string;
   task_name: string;
+  date: string;
+  submission_deadline: string;
+  task_description: string;
+  use_custom_form: boolean;
+  require_image: boolean;
+  require_docs: boolean;
 }
 
 interface QuizQuestion {
@@ -24,8 +31,8 @@ interface QuizQuestion {
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'events' | 'submissions' | 'tasks' | 'quizzes'>('events');
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [selectedTask, setSelectedTask] = useState<string | null>(null);
-  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]); // New state for existing questions
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null); // Changed to task_id
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [question, setQuestion] = useState('');
   const [optionA, setOptionA] = useState('');
   const [optionB, setOptionB] = useState('');
@@ -40,17 +47,17 @@ export function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (selectedTask) {
-      fetchQuizQuestions(selectedTask);
+    if (selectedTaskId) {
+      fetchQuizQuestions(selectedTaskId);
     } else {
       setQuizQuestions([]); // Clear questions if no task is selected
     }
-  }, [selectedTask]);
+  }, [selectedTaskId]);
 
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('tasks').select('id, task_name');
+      const { data, error } = await supabase.from('tasks').select('*'); // Fetch all columns
       if (error) throw error;
       setTasks(data || []);
     } catch (err) {
@@ -75,15 +82,23 @@ export function AdminDashboard() {
     setLoading(true);
     setError(null);
 
-    if (!selectedTask || !question || !optionA || !optionB || !optionC || !optionD || !correctAnswer) {
+    if (!selectedTaskId || !question || !optionA || !optionB || !optionC || !optionD || !correctAnswer) {
       setError('All fields are required.');
       setLoading(false);
       return;
     }
 
     try {
+      // Validate task_id exists (additional safety check)
+      const { data: taskExists } = await supabase
+        .from('tasks')
+        .select('task_id')
+        .eq('task_id', selectedTaskId)
+        .single();
+      if (!taskExists) throw new Error('Selected task_id does not exist.');
+
       const { error } = await supabase.from('task_quizzes').insert({
-        task_id: selectedTask,
+        task_id: selectedTaskId,
         question,
         option_a: optionA,
         option_b: optionB,
@@ -100,9 +115,10 @@ export function AdminDashboard() {
       setOptionD('');
       setCorrectAnswer('');
       setError('Question added successfully!');
-      fetchQuizQuestions(selectedTask); // Refresh the questions list
+      fetchQuizQuestions(selectedTaskId); // Refresh the questions list
     } catch (err) {
       setError(err.message || 'Failed to add question.');
+      console.error('Quiz insertion error:', err);
     } finally {
       setLoading(false);
     }
@@ -113,7 +129,7 @@ export function AdminDashboard() {
       const { error } = await supabase.from('task_quizzes').delete().eq('id', questionId);
       if (error) throw error;
       setError('Question deleted successfully!');
-      fetchQuizQuestions(selectedTask!); // Refresh the questions list
+      if (selectedTaskId) fetchQuizQuestions(selectedTaskId); // Refresh the questions list
     } catch (err) {
       setError(err.message || 'Failed to delete question.');
     }
@@ -173,13 +189,15 @@ export function AdminDashboard() {
               <div>
                 <label className="block text-lg sm:text-xl text-white mb-2">Select Task</label>
                 <select
-                  value={selectedTask || ''}
-                  onChange={(e) => setSelectedTask(e.target.value)}
+                  value={selectedTaskId || ''}
+                  onChange={(e) => setSelectedTaskId(e.target.value)}
                   className="w-full p-3 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
                 >
                   <option value="">Select a Task</option>
                   {tasks.map((task) => (
-                    <option key={task.id} value={task.id}>{task.task_name}</option>
+                    <option key={task.id} value={task.task_id}>
+                      {task.task_id} - {task.task_name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -257,7 +275,7 @@ export function AdminDashboard() {
           </div>
 
           {/* Table to Display and Delete Questions */}
-          {selectedTask && quizQuestions.length > 0 && (
+          {selectedTaskId && quizQuestions.length > 0 && (
             <div>
               <h2 className="text-xl sm:text-2xl font-semibold text-cyan mb-4">Existing Quiz Questions</h2>
               <div className="overflow-x-auto">

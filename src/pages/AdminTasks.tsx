@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 
 interface Task {
   id: string;
@@ -12,6 +13,8 @@ interface Task {
   submission_deadline: string;
   task_description: string;
   use_custom_form: boolean;
+  require_image: boolean;
+  require_docs: boolean;
 }
 
 interface FormData {
@@ -28,6 +31,7 @@ export function AdminTasks() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const navigate = useNavigate();
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     defaultValues: {
@@ -43,9 +47,13 @@ export function AdminTasks() {
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      setTasks(data || []);
+      const { data: tasksData, error: tasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (tasksError) throw tasksError;
+      console.log('Fetched tasks:', tasksData);
+      setTasks(tasksData || []);
     } catch (err) {
       setError(err.message || 'Failed to fetch tasks.');
     } finally {
@@ -60,7 +68,6 @@ export function AdminTasks() {
   const onSubmit = async (data: FormData) => {
     try {
       if (editingTask) {
-        // Update existing task
         const { error } = await supabase
           .from('tasks')
           .update({
@@ -74,7 +81,6 @@ export function AdminTasks() {
           .eq('id', editingTask.id);
         if (error) throw error;
       } else {
-        // Add new task
         const { error } = await supabase
           .from('tasks')
           .insert([{
@@ -84,11 +90,13 @@ export function AdminTasks() {
             submission_deadline: data.submission_deadline,
             task_description: data.task_description,
             use_custom_form: data.use_custom_form,
+            require_image: false,
+            require_docs: false,
           }]);
         if (error) throw error;
       }
-      fetchTasks(); // Refresh task list
-      reset(); // Clear form
+      fetchTasks();
+      reset();
       setEditingTask(null);
     } catch (err) {
       setError(err.message || 'Failed to save task.');
@@ -108,21 +116,43 @@ export function AdminTasks() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this task?')) return;
+    if (!confirm('Are you sure you want to delete this task? This will also delete any associated quizzes and submissions.')) return;
     try {
-      const { error } = await supabase.from('tasks').delete().eq('id', id);
-      if (error) throw error;
+      const { data: task, error: fetchError } = await supabase
+        .from('tasks')
+        .select('task_id')
+        .eq('id', id)
+        .single();
+      if (fetchError) throw fetchError;
+
+      const taskId = task.task_id;
+
+      const { error: submissionDeleteError } = await supabase
+        .from('task_submissions')
+        .delete()
+        .eq('event_name', taskId);
+      if (submissionDeleteError) throw submissionDeleteError;
+
+      const { error: taskDeleteError } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', id);
+      if (taskDeleteError) throw taskDeleteError;
+
       fetchTasks();
     } catch (err) {
-      setError(err.message || 'Failed to delete task.');
+      setError(err.message || 'Failed to delete task: ' + (err.message || 'Unknown error'));
     }
+  };
+
+  const handleSubmitTask = (task: Task) => {
+    // Navigate to MembersPortal with query params to trigger quiz and submission
+    navigate(`/members-portal?tab=submissions&submitTaskId=${task.id}`);
   };
 
   return (
     <div className="p-4 sm:p-6">
       <h2 className="text-2xl font-bold text-cyan mb-6">Manage Tasks</h2>
-
-      {/* Task Form */}
       <Card className="p-6 mb-6 bg-navy-light border-cyan">
         <h3 className="text-xl font-semibold text-white mb-4">{editingTask ? 'Edit Task' : 'Add New Task'}</h3>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -196,15 +226,13 @@ export function AdminTasks() {
         </form>
         {error && <p className="text-red-500 mt-4">{error}</p>}
       </Card>
-
-      {/* Task List */}
       <Card className="p-6 bg-navy-light border-cyan">
         <h3 className="text-xl font-semibold text-white mb-4">Task List</h3>
         {loading ? (
           <p className="text-white">Loading tasks...</p>
         ) : tasks.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-white min-w-[500px]">
+            <table className="w-full text-white min-w-[600px]">
               <thead>
                 <tr className="bg-navy-dark">
                   <th className="border p-2 sm:p-3 text-left">Task ID</th>
@@ -231,9 +259,16 @@ export function AdminTasks() {
                       </Button>
                       <Button
                         variant="secondary"
+                        className="mr-2"
                         onClick={() => handleDelete(task.id)}
                       >
                         Delete
+                      </Button>
+                      <Button
+                        variant="primary"
+                        onClick={() => handleSubmitTask(task)}
+                      >
+                        Submit Task
                       </Button>
                     </td>
                   </tr>
