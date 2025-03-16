@@ -14,9 +14,9 @@ interface FormData {
   program: string;
   registration_number: string;
   batch: string;
-  image?: FileList;
+  image: FileList;
   learnings: string;
-  doc_links?: string;
+  doc_links: string;
 }
 
 interface TaskSubmissionFormProps {
