@@ -47,7 +47,7 @@ export default function App() {
             />
 
             {/* Default Route */}
-            <Route path="*" element={<Navigate to="/event/0" />} />
+            <Route path="*" element={<Navigate to="#" />} />
           </Routes>
         </main>
       </div>

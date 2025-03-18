@@ -15,7 +15,7 @@ interface Task {
   use_custom_form: boolean;
   require_image: boolean;
   require_doc_links: boolean;
-  require_learnings: boolean; // New field for learnings toggle
+  require_learnings: boolean;
 }
 
 interface FormData {
@@ -26,7 +26,7 @@ interface FormData {
   task_description: string;
   use_custom_form: boolean;
   require_doc_links: boolean;
-  require_learnings: boolean; // Added to form data
+  require_learnings: boolean;
 }
 
 export function AdminTasks() {
@@ -45,7 +45,7 @@ export function AdminTasks() {
       task_description: '',
       use_custom_form: true,
       require_doc_links: false,
-      require_learnings: false, // Default to false
+      require_learnings: false,
     },
   });
 
@@ -83,7 +83,7 @@ export function AdminTasks() {
             task_description: data.task_description,
             use_custom_form: data.use_custom_form,
             require_doc_links: data.require_doc_links,
-            require_learnings: data.require_learnings, // Update the require_learnings field
+            require_learnings: data.require_learnings,
           })
           .eq('id', editingTask.id);
         if (error) throw error;
@@ -99,7 +99,7 @@ export function AdminTasks() {
             use_custom_form: data.use_custom_form,
             require_image: false,
             require_doc_links: data.require_doc_links,
-            require_learnings: data.require_learnings, // Save the toggle state
+            require_learnings: data.require_learnings,
           }]);
         if (error) throw error;
       }
@@ -121,12 +121,12 @@ export function AdminTasks() {
       task_description: task.task_description,
       use_custom_form: task.use_custom_form,
       require_doc_links: task.require_doc_links,
-      require_learnings: task.require_learnings, // Populate the toggle state
+      require_learnings: task.require_learnings,
     });
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this task? This will also delete any associated quizzes and submissions.')) return;
+    if (!confirm('Are you sure you want to delete this task? This will also delete any associated quizzes and submissions, including uploaded images.')) return;
     try {
       const { data: task, error: fetchError } = await supabase
         .from('tasks')
@@ -137,12 +137,37 @@ export function AdminTasks() {
 
       const taskId = task.task_id;
 
+      // Fetch all submissions for this task to get image URLs
+      const { data: submissions, error: submissionsError } = await supabase
+        .from('task_submissions')
+        .select('image_url')
+        .eq('event_name', taskId);
+      if (submissionsError) throw submissionsError;
+
+      // Delete images from storage if they exist
+      if (submissions && submissions.length > 0) {
+        const deletePromises = submissions
+          .filter((submission) => submission.image_url) // Only process submissions with images
+          .map(async (submission) => {
+            const filePath = submission.image_url.split('/public/')[1]; // Extract the file path from the URL
+            if (filePath) {
+              const { error: storageError } = await supabase.storage
+                .from('task-submissions-images')
+                .remove([`public/${filePath}`]);
+              if (storageError) throw storageError;
+            }
+          });
+        await Promise.all(deletePromises); // Wait for all deletions to complete
+      }
+
+      // Delete submissions from the database
       const { error: submissionDeleteError } = await supabase
         .from('task_submissions')
         .delete()
         .eq('event_name', taskId);
       if (submissionDeleteError) throw submissionDeleteError;
 
+      // Delete the task from the database
       const { error: taskDeleteError } = await supabase
         .from('tasks')
         .delete()
