@@ -14,7 +14,8 @@ interface Task {
   task_description: string;
   use_custom_form: boolean;
   require_image: boolean;
-  require_docs: boolean;
+  require_doc_links: boolean;
+  require_learnings: boolean; // New field for learnings toggle
 }
 
 interface FormData {
@@ -24,6 +25,8 @@ interface FormData {
   submission_deadline: string;
   task_description: string;
   use_custom_form: boolean;
+  require_doc_links: boolean;
+  require_learnings: boolean; // Added to form data
 }
 
 export function AdminTasks() {
@@ -41,6 +44,8 @@ export function AdminTasks() {
       submission_deadline: '',
       task_description: '',
       use_custom_form: true,
+      require_doc_links: false,
+      require_learnings: false, // Default to false
     },
   });
 
@@ -77,6 +82,8 @@ export function AdminTasks() {
             submission_deadline: data.submission_deadline,
             task_description: data.task_description,
             use_custom_form: data.use_custom_form,
+            require_doc_links: data.require_doc_links,
+            require_learnings: data.require_learnings, // Update the require_learnings field
           })
           .eq('id', editingTask.id);
         if (error) throw error;
@@ -91,7 +98,8 @@ export function AdminTasks() {
             task_description: data.task_description,
             use_custom_form: data.use_custom_form,
             require_image: false,
-            require_docs: false,
+            require_doc_links: data.require_doc_links,
+            require_learnings: data.require_learnings, // Save the toggle state
           }]);
         if (error) throw error;
       }
@@ -112,6 +120,8 @@ export function AdminTasks() {
       submission_deadline: task.submission_deadline,
       task_description: task.task_description,
       use_custom_form: task.use_custom_form,
+      require_doc_links: task.require_doc_links,
+      require_learnings: task.require_learnings, // Populate the toggle state
     });
   };
 
@@ -146,7 +156,6 @@ export function AdminTasks() {
   };
 
   const handleSubmitTask = (task: Task) => {
-    // Navigate to MembersPortal with query params to trigger quiz and submission
     navigate(`/members-portal?tab=submissions&submitTaskId=${task.id}`);
   };
 
@@ -204,6 +213,22 @@ export function AdminTasks() {
             <input
               type="checkbox"
               {...register('use_custom_form')}
+              className="h-5 w-5 text-cyan border-gray-800 rounded focus:ring-cyan"
+            />
+          </div>
+          <div>
+            <label className="block text-white">Require Document Links</label>
+            <input
+              type="checkbox"
+              {...register('require_doc_links')}
+              className="h-5 w-5 text-cyan border-gray-800 rounded focus:ring-cyan"
+            />
+          </div>
+          <div>
+            <label className="block text-white">Require Learnings</label>
+            <input
+              type="checkbox"
+              {...register('require_learnings')}
               className="h-5 w-5 text-cyan border-gray-800 rounded focus:ring-cyan"
             />
           </div>

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import Linkify from 'react-linkify'; // Single import at the top
+import Linkify from 'react-linkify';
 import { useForm, Controller } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -15,6 +15,8 @@ interface Task {
   submission_deadline: string;
   task_description: string;
   use_custom_form: boolean;
+  require_doc_links: boolean;
+  require_learnings: boolean; // New field
 }
 
 interface QuizQuestion {
@@ -39,7 +41,8 @@ interface FormData {
   registration_number: string;
   batch: string;
   image: FileList;
-  learnings: string; // New field for learnings
+  learnings?: string; // Optional since it may not be required
+  doc_links?: string; // Optional since it may not be required
 }
 
 export function MembersPortal() {
@@ -64,11 +67,11 @@ export function MembersPortal() {
   const [finalScore, setFinalScore] = useState<number | null>(null);
 
   const { register, handleSubmit, watch, control, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
-    defaultValues: { event_name: '', batch: '', learnings: '' }, // Initialize learnings
+    defaultValues: { event_name: '', batch: '', learnings: '', doc_links: '' },
   });
   const discipline = watch('discipline');
 
-  const currentDate = new Date('2025-03-18'); // Updated to current date
+  const currentDate = new Date('2025-03-18');
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -87,7 +90,6 @@ export function MembersPortal() {
     fetchTasks();
   }, []);
 
-  // Handle query parameters to trigger quiz and submission
   useEffect(() => {
     const tab = searchParams.get('tab');
     const submitTaskId = searchParams.get('submitTaskId');
@@ -101,14 +103,13 @@ export function MembersPortal() {
       if (task && task.use_custom_form) {
         if (isDeadlineCrossed(task.submission_deadline)) {
           setDeadlineCrossedTask(task);
-          setSubmissionTask(null); // Prevent submission form from opening
+          setSubmissionTask(null);
           setQuizTask(null);
         } else {
           setQuizTask(task);
           setDeadlineCrossedTask(null);
         }
       }
-      // Clear the query params after handling
       setSearchParams({});
     }
   }, [searchParams, tasks, setSearchParams]);
@@ -168,21 +169,27 @@ export function MembersPortal() {
       return;
     }
 
-    // Check deadline before submission
     if (isDeadlineCrossed(submissionTask.submission_deadline)) {
       setSubmissionError('Submission deadline has passed.');
       setSubmissionStatus('error');
-      setSubmissionTask(null); // Reset to prevent form resubmission
+      setSubmissionTask(null);
       return;
     }
 
-    // Validate word count for learnings (100-200 words)
-    const words = data.learnings.trim().split(/\s+/).filter(word => word.length > 0);
-    const wordCount = words.length;
-    if (wordCount < 100 || wordCount > 200) {
-      setSubmissionError('Learnings must be between 100 and 200 words.');
-      setSubmissionStatus('error');
-      return;
+    // Validate learnings only if required
+    if (submissionTask.require_learnings) {
+      const words = data.learnings?.trim().split(/\s+/).filter(word => word.length > 0) || [];
+      const wordCount = words.length;
+      if (!data.learnings) {
+        setSubmissionError('Learnings is required.');
+        setSubmissionStatus('error');
+        return;
+      }
+      if (wordCount < 100 || wordCount > 200) {
+        setSubmissionError('Learnings must be between 100 and 200 words.');
+        setSubmissionStatus('error');
+        return;
+      }
     }
 
     try {
@@ -190,7 +197,7 @@ export function MembersPortal() {
       let imageUrl = null;
       if (file) {
         const fileName = `${Date.now()}_${file.name}`;
-        const { error: uploadError, data: uploadData } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('task-submissions-images')
           .upload(`public/${fileName}`, file, {
             cacheControl: '3600',
@@ -214,7 +221,8 @@ export function MembersPortal() {
         batch: data.batch,
         image_url: imageUrl,
         quiz_score: finalScore ? Math.round(finalScore) : null,
-        learnings: data.learnings, // Save learnings to the learnings column
+        learnings: submissionTask.require_learnings ? data.learnings : null, // Only include if required
+        doc_links: submissionTask.require_doc_links ? data.doc_links : null, // Only include if required
       });
       if (dbError) throw dbError;
 
@@ -276,7 +284,6 @@ export function MembersPortal() {
 
   const isDeadlineCrossed = (deadline: string) => {
     const deadlineDate = new Date(deadline);
-    console.log(`Checking deadline: ${deadline} against ${currentDate}`);
     return deadlineDate < currentDate;
   };
 
@@ -336,7 +343,7 @@ export function MembersPortal() {
               <p className="text-center text-lg">Loading tasks...</p>
             ) : tasks.length > 0 ? (
               tasks.map((task) =>
-                task.use_custom_form && (
+                task.use_custom_form ? (
                   <Card
                     key={task.id}
                     className="p-6 bg-navy-light border-cyan rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
@@ -369,6 +376,33 @@ export function MembersPortal() {
                       >
                         Submit Task
                       </Button>
+                    </div>
+                  </Card>
+                ) : (
+                  <Card
+                    key={task.id}
+                    className="p-6 bg-navy-light border-cyan rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+                  >
+                    <h3 className="text-2xl font-semibold text-cyan mb-4">{task.task_name}</h3>
+                    <p className="text-gray-300 mb-2">
+                      <span className="font-medium">Start Date:</span> {task.date}
+                    </p>
+                    <p className="text-gray-300 mb-6">
+                      <span className="font-medium">Deadline:</span> {task.submission_deadline}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <Button
+                        variant="secondary"
+                        className="w-full py-3 text-lg"
+                        onClick={() => setSelectedTask(task)}
+                      >
+                        View Task Details
+                      </Button>
+                      <Link to={`/task-submission/${task.id}`} className="w-full">
+                        <Button variant="primary" className="w-full py-3 text-lg">
+                          Submit Task
+                        </Button>
+                      </Link>
                     </div>
                   </Card>
                 )
@@ -438,7 +472,6 @@ export function MembersPortal() {
         )}
       </Card>
 
-      {/* Glassmorphism Pop-up for View Task Details */}
       <AnimatePresence>
         {selectedTask && (
           <motion.div
@@ -485,7 +518,6 @@ export function MembersPortal() {
         )}
       </AnimatePresence>
 
-      {/* Glassmorphism Pop-up for Submission Form */}
       <AnimatePresence>
         {submissionTask && (
           <motion.div
@@ -646,22 +678,35 @@ export function MembersPortal() {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm sm:text-lg text-white mb-2">What have you learnt from this task (100-200 words)</label>
-                  <textarea
-                    {...register('learnings', {
-                      required: 'Learnings is required',
-                      validate: (value) => {
-                        const words = value.trim().split(/\s+/).filter(word => word.length > 0);
-                        const wordCount = words.length;
-                        return (wordCount >= 100 && wordCount <= 200) || 'Must be between 100 and 200 words';
-                      },
-                    })}
-                    className="w-full p-2 sm:p-3 rounded bg-navy text-white border border-gray-800 focus:border-cyan text-sm sm:text-base h-40"
-                    placeholder="Write about what you have learned from this task (100-200 words)..."
-                  />
-                  {errors.learnings && <p className="text-red-500 mt-1 text-xs sm:text-sm">{errors.learnings.message}</p>}
-                </div>
+                {submissionTask.require_learnings && (
+                  <div>
+                    <label className="block text-sm sm:text-lg text-white mb-2">What have you learnt from this task (100-200 words)</label>
+                    <textarea
+                      {...register('learnings', {
+                        required: 'Learnings is required',
+                        validate: (value) => {
+                          const words = value.trim().split(/\s+/).filter(word => word.length > 0);
+                          const wordCount = words.length;
+                          return (wordCount >= 100 && wordCount <= 200) || 'Must be between 100 and 200 words';
+                        },
+                      })}
+                      className="w-full p-2 sm:p-3 rounded bg-navy text-white border border-gray-800 focus:border-cyan text-sm sm:text-base h-40"
+                      placeholder="Write about what you have learned from this task (100-200 words)..."
+                    />
+                    {errors.learnings && <p className="text-red-500 mt-1 text-xs sm:text-sm">{errors.learnings.message}</p>}
+                  </div>
+                )}
+
+                {submissionTask.require_doc_links && (
+                  <div>
+                    <label className="block text-sm sm:text-lg text-white mb-2">Document Link</label>
+                    <input
+                      {...register('doc_links')}
+                      className="w-full p-2 sm:p-3 rounded bg-navy text-white border border-gray-800 focus:border-cyan text-sm sm:text-base"
+                      placeholder="Enter document link (e.g., Google Drive URL)"
+                    />
+                  </div>
+                )}
 
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                   <Button type="submit" variant="primary" disabled={isSubmitting} className="w-full py-2 sm:py-3 text-base sm:text-lg">
@@ -705,7 +750,6 @@ export function MembersPortal() {
         )}
       </AnimatePresence>
 
-      {/* Glassmorphism Pop-up for Deadline Crossed (Fixed to Ensure Display) */}
       <AnimatePresence>
         {deadlineCrossedTask && (
           <motion.div
@@ -734,8 +778,8 @@ export function MembersPortal() {
                 variant="secondary"
                 className="w-full py-3 text-base sm:text-lg"
                 onClick={() => {
-                  setDeadlineCrossedTask(null); // Ensure state is cleared
-                  setSubmissionTask(null); // Prevent submission form from opening
+                  setDeadlineCrossedTask(null);
+                  setSubmissionTask(null);
                 }}
               >
                 Close
@@ -745,7 +789,6 @@ export function MembersPortal() {
         )}
       </AnimatePresence>
 
-      {/* Glassmorphism Pop-up for Quiz */}
       <AnimatePresence>
         {quizTask && quizQuestions.length > 0 && (
           <motion.div

@@ -1,33 +1,55 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface Submission {
+  id: number;
+  event_name: string;
+  name: string;
+  email: string;
+  phone: string;
+  year: string;
+  discipline: string;
+  program: string;
+  registration_number: string;
+  timestamp: string;
+  batch: string;
+  image_url: string | null;
+  quiz_score: number | null;
+  learnings: string | null;
+  doc_links: string | null;
+  status: string;
+}
 
 export function AdminTaskSubmissions() {
-  const [data, setData] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [filterTaskName, setFilterTaskName] = useState<string>('');
   const [filterBatch, setFilterBatch] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: number; image_url: string | null } | null>(null);
+  const [selectedLearning, setSelectedLearning] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchSubmissions = async () => {
       try {
         const { data: result, error: fetchError } = await supabase
           .from('task_submissions')
-          .select('*');
+          .select('*')
+          .order('timestamp', { ascending: false });
         if (fetchError) throw fetchError;
 
         console.log('Fetched task submissions:', result);
-        setData(result || []);
+        setSubmissions(result || []);
       } catch (err) {
         setError(err.message || 'Failed to fetch task submissions');
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+    fetchSubmissions();
   }, []);
 
   const updateStatus = async (submissionId: number, newStatus: string) => {
@@ -38,7 +60,7 @@ export function AdminTaskSubmissions() {
         .eq('id', submissionId);
       if (updateError) throw updateError;
 
-      setData(data.map((item) =>
+      setSubmissions(submissions.map((item) =>
         item.id === submissionId ? { ...item, status: newStatus } : item
       ));
     } catch (err) {
@@ -62,20 +84,30 @@ export function AdminTaskSubmissions() {
         .eq('id', submissionId);
       if (deleteError) throw deleteError;
 
-      setData(data.filter((item) => item.id !== submissionId));
+      setSubmissions(submissions.filter((item) => item.id !== submissionId));
       setDeleteConfirmation(null);
     } catch (err) {
       setError(err.message || 'Failed to delete submission');
     }
   };
 
-  const taskNames = [...new Set(data.map((item) => item.event_name))];
-  const batches = [...new Set(data.map((item) => item.batch))];
-  const filteredData = data.filter((item) => {
+  const taskNames = [...new Set(submissions.map((item) => item.event_name))];
+  const batches = [...new Set(submissions.map((item) => item.batch))];
+  const filteredData = submissions.filter((item) => {
     const taskMatch = !filterTaskName || item.event_name === filterTaskName;
     const batchMatch = !filterBatch || item.batch === filterBatch;
     return taskMatch && batchMatch;
   });
+
+  const handleViewLearning = (learnings: string | null) => {
+    setSelectedLearning(learnings || 'No learnings provided.');
+  };
+
+  const popupVariants = {
+    hidden: { opacity: 0, scale: 0.95 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.2, ease: 'easeOut' } },
+    exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2, ease: 'easeIn' } },
+  };
 
   if (loading) return <div className="text-white text-center p-6">Loading...</div>;
   if (error) return <div className="text-red-500 text-center p-6">{error}</div>;
@@ -107,85 +139,99 @@ export function AdminTaskSubmissions() {
           </select>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-white min-w-[800px]">
+          <table className="w-full text-white min-w-[900px]">
             <thead>
               <tr className="bg-navy-dark">
-                <th className="border p-2 sm:p-3 text-left">Task Name</th>
-                <th className="border p-2 sm:p-3 text-left">Name</th>
-                <th className="border p-2 sm:p-3 text-left">Email</th>
-                <th className="border p-2 sm:p-3 text-left">Phone</th>
-                <th className="border p-2 sm:p-3 text-left">Year</th>
-                <th className="border p-2 sm:p-3 text-left">Discipline</th>
-                <th className="border p-2 sm:p-3 text-left">Program</th>
-                <th className="border p-2 sm:p-3 text-left">Registration Number</th>
-                <th className="border p-2 sm:p-3 text-left">Batch</th>
-                <th className="border p-2 sm:p-3 text-left">Timestamp</th>
-                <th className="border p-2 sm:p-3 text-left">Status</th>
-                <th className="border p-2 sm:p-3 text-left">Image URL</th>
-                <th className="border p-2 sm:p-3 text-left">Learnings</th>
-                <th className="border p-2 sm:p-3 text-left">Doc Links</th>
-                <th className="border p-2 sm:p-3 text-left">Quiz Score</th>
-                <th className="border p-2 sm:p-3 text-left">Actions</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Task Name</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Name</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Email</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Phone</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Year</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Discipline</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Program</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Reg. Number</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Batch</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Submission Date</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Status</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Image</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Doc Links</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Learnings</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Quiz Score</th>
+                <th className="border p-2 sm:p-3 text-left text-sm sm:text-lg">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredData.map((row, index) => {
-                console.log('Rendering row:', row); // Debug each row
-                return (
-                  <tr key={index} className="hover:bg-navy-light/50">
-                    <td className="border p-2 sm:p-3">{row.event_name}</td>
-                    <td className="border p-2 sm:p-3">{row.name}</td>
-                    <td className="border p-2 sm:p-3">{row.email}</td>
-                    <td className="border p-2 sm:p-3">{row.phone}</td>
-                    <td className="border p-2 sm:p-3">{row.year}</td>
-                    <td className="border p-2 sm:p-3">{row.discipline}</td>
-                    <td className="border p-2 sm:p-3">{row.program}</td>
-                    <td className="border p-2 sm:p-3">{row.registration_number}</td>
-                    <td className="border p-2 sm:p-3">{row.batch}</td>
-                    <td className="border p-2 sm:p-3">{new Date(row.timestamp).toLocaleString()}</td>
-                    <td className="border p-2 sm:p-3">
-                      <select
-                        value={row.status}
-                        onChange={(e) => updateStatus(row.id, e.target.value)}
-                        className="p-1 rounded bg-navy text-white border border-gray-800 focus:border-cyan focus:outline-none"
-                      >
-                        <option value="Pending Review">Pending Review</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
-                    </td>
-                    <td className="border p-2 sm:p-3">
-                      {row.image_url ? (
-                        <a href={row.image_url} target="_blank" rel="noopener noreferrer" className="text-cyan underline">
-                          View Image
+              {filteredData.map((row) => (
+                <tr key={row.id} className="hover:bg-navy-light/50">
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">{row.event_name}</td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">{row.name}</td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">{row.email}</td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">{row.phone}</td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">{row.year}</td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">{row.discipline}</td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">{row.program}</td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">{row.registration_number}</td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">{row.batch}</td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">{new Date(row.timestamp).toLocaleString()}</td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">
+                    <select
+                      value={row.status}
+                      onChange={(e) => updateStatus(row.id, e.target.value)}
+                      className="p-1 rounded bg-navy text-white border border-gray-800 focus:border-cyan focus:outline-none"
+                    >
+                      <option value="Pending Review">Pending Review</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                  </td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">
+                    {row.image_url ? (
+                      <a href={row.image_url} target="_blank" rel="noopener noreferrer" className="text-cyan underline">
+                        View Image
+                      </a>
+                    ) : 'No Image'}
+                  </td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">
+                    {row.doc_links ? (
+                      row.doc_links.split(',').length > 1 ? (
+                        <span>
+                          {row.doc_links.split(',')[0].trim()}...{' '}
+                          <a href={row.doc_links} target="_blank" rel="noopener noreferrer" className="text-cyan underline">
+                            View All
+                          </a>
+                        </span>
+                      ) : (
+                        <a href={row.doc_links.trim()} target="_blank" rel="noopener noreferrer" className="text-cyan underline">
+                          View
                         </a>
-                      ) : 'No Image'}
-                    </td>
-                    <td className="border p-2 sm:p-3">
-                      {row.learnings || 'N/A'}
-                    </td>
-                    <td className="border p-2 sm:p-3">
-                      {row.doc_links ? (
-                        <a href={row.doc_links} target="_blank" rel="noopener noreferrer" className="text-cyan underline">
-                          View Docs
-                        </a>
-                      ) : 'No Docs'}
-                    </td>
-                    <td className="border p-2 sm:p-3">
-                      {row.quiz_score !== null ? `${row.quiz_score}%` : 'N/A'}
-                    </td>
-                    <td className="border p-2 sm:p-3">
+                      )
+                    ) : 'No Docs'}
+                  </td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">
+                    {row.learnings ? (
                       <Button
-                        variant="danger"
-                        className="px-3 py-1 text-sm"
-                        onClick={() => setDeleteConfirmation({ id: row.id, image_url: row.image_url })}
+                        variant="secondary"
+                        className="px-2 py-1 text-xs sm:text-sm"
+                        onClick={() => handleViewLearning(row.learnings)}
                       >
-                        Delete
+                        View
                       </Button>
-                    </td>
-                  </tr>
-                );
-              })}
+                    ) : 'N/A'}
+                  </td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">
+                    {row.quiz_score !== null ? `${row.quiz_score}%` : 'N/A'}
+                  </td>
+                  <td className="border p-2 sm:p-3 text-sm sm:text-base">
+                    <Button
+                      variant="danger"
+                      className="px-3 py-1 text-sm"
+                      onClick={() => setDeleteConfirmation({ id: row.id, image_url: row.image_url })}
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
           {filteredData.length === 0 && <p className="text-white text-center mt-4">No task submissions available</p>}
@@ -229,6 +275,41 @@ export function AdminTaskSubmissions() {
         </Button>
       </Card>
 
+      {/* Glassmorphism Pop-up for Learnings (Improved Responsive Design) */}
+      <AnimatePresence>
+        {selectedLearning && (
+          <motion.div
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-2 sm:p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              variants={popupVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="p-4 sm:p-6 max-w-[90%] sm:max-w-[80%] md:max-w-[70%] lg:max-w-[60%] w-full max-h-[90vh] overflow-y-auto rounded-lg shadow-lg backdrop-blur-md bg-white/10 border border-white/20"
+              style={{ backdropFilter: 'blur(10px)' }}
+            >
+              <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-cyan mb-4">Learnings</h3>
+              <p className="text-gray-300 text-sm sm:text-base md:text-lg mb-6 whitespace-pre-wrap break-words">
+                {selectedLearning}
+              </p>
+              <Button
+                variant="secondary"
+                className="w-full sm:w-auto px-4 py-2 text-sm sm:text-base md:text-lg"
+                onClick={() => setSelectedLearning(null)}
+              >
+                Close
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Popup */}
       {deleteConfirmation && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="p-6 max-w-sm w-full rounded-lg shadow-lg backdrop-blur-md bg-white/10 border border-white/20">

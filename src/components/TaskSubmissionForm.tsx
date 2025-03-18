@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { supabase } from '../supabaseClient';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 
 interface FormData {
   name: string;
@@ -13,13 +13,20 @@ interface FormData {
   registration_number: string;
   batch: string;
   image: FileList;
-  learnings: string; // Updated to match 100-200 word requirement
-  doc_links: string;
+  learnings?: string; // Optional since it may not be required
+  doc_links?: string; // Optional since it may not be required
+}
+
+interface Task {
+  id: string;
+  task_name: string;
+  require_doc_links: boolean;
+  require_learnings: boolean; // New field
 }
 
 const TaskSubmissionForm: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { taskId } = useParams<{ taskId: string }>(); // Get taskId from URL params
   const { register, handleSubmit, watch, control, formState: { errors, isSubmitting }, reset } = useForm<FormData>({
     defaultValues: {
       name: '',
@@ -30,7 +37,7 @@ const TaskSubmissionForm: React.FC = () => {
       program: '',
       registration_number: '',
       batch: '',
-      learnings: '', // Initialize learnings
+      learnings: '',
       doc_links: '',
     },
   });
@@ -38,6 +45,8 @@ const TaskSubmissionForm: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState<boolean>(false);
+  const [task, setTask] = useState<Task | null>(null);
+  const [loadingTask, setLoadingTask] = useState(true);
   const discipline = watch('discipline');
 
   const yearOptions = ['I Year', 'II Year', 'III Year', 'IV Year', 'V Year'];
@@ -75,20 +84,47 @@ const TaskSubmissionForm: React.FC = () => {
   };
   const batchOptions = ['Wednesday Batch', 'Thursday Batch'];
 
+  // Fetch task details to determine if learnings and doc_links are required
   useEffect(() => {
-    console.log('Form initialized with location:', location);
-  }, [location]);
+    const fetchTask = async () => {
+      if (!taskId) {
+        setLoadingTask(false);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('id, task_name, require_doc_links, require_learnings')
+          .eq('id', taskId)
+          .single();
+        if (error) throw error;
+        setTask(data);
+      } catch (err) {
+        console.error('Error fetching task:', err);
+        setSubmissionError('Failed to load task details.');
+      } finally {
+        setLoadingTask(false);
+      }
+    };
+    fetchTask();
+  }, [taskId]);
 
   const onSubmit = async (data: FormData) => {
     setSubmissionError(null);
     setSubmissionSuccess(false);
 
-    // Validate word count for learnings (100-200 words)
-    const words = data.learnings.trim().split(/\s+/).filter(word => word.length > 0);
-    const wordCount = words.length;
-    if (wordCount < 50 || wordCount > 70) {
-      setSubmissionError('Learnings must be between 50 and 70 words.');
-      return;
+    // Validate learnings only if required
+    if (task?.require_learnings) {
+      const words = data.learnings?.trim().split(/\s+/).filter(word => word.length > 0) || [];
+      const wordCount = words.length;
+      if (!data.learnings) {
+        setSubmissionError('Learnings is required.');
+        return;
+      }
+      if (wordCount < 100 || wordCount > 200) {
+        setSubmissionError('Learnings must be between 100 and 200 words.');
+        return;
+      }
     }
 
     try {
@@ -96,7 +132,7 @@ const TaskSubmissionForm: React.FC = () => {
       let imageUrl = null;
       if (file) {
         const fileName = `${Date.now()}_${file.name}`;
-        const { error: uploadError, data: uploadData } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('task-submissions-images')
           .upload(`public/${fileName}`, file, {
             cacheControl: '3600',
@@ -108,7 +144,7 @@ const TaskSubmissionForm: React.FC = () => {
       }
 
       const { error } = await supabase.from('task_submissions').insert({
-        event_name: 'Custom Form Submission', // Default event_name, adjust if task-specific
+        event_name: task?.task_name || 'Custom Form Submission',
         name: data.name,
         email: data.email,
         phone: data.phone,
@@ -119,8 +155,8 @@ const TaskSubmissionForm: React.FC = () => {
         timestamp: new Date().toISOString(),
         batch: data.batch,
         image_url: imageUrl,
-        learnings: data.learnings, // Save learnings to the learnings column
-        doc_links: data.doc_links,
+        learnings: task?.require_learnings ? data.learnings : null, // Only include if required
+        doc_links: task?.require_doc_links ? data.doc_links : null, // Only include if required
       });
 
       if (error) throw error;
@@ -128,13 +164,13 @@ const TaskSubmissionForm: React.FC = () => {
       setSubmissionSuccess(true);
       reset();
       setImagePreview(null);
-      console.log('Submission successful, navigating back');
       navigate('/members-portal');
     } catch (err) {
       setSubmissionError(err.message || 'Submission failed. Please try again.');
-      console.error('Submission error:', err);
     }
   };
+
+  if (loadingTask) return <div className="text-white text-center p-6">Loading task details...</div>;
 
   return (
     <div className="min-h-screen bg-navy-light text-white p-4 sm:p-6 lg:p-8">
@@ -267,31 +303,35 @@ const TaskSubmissionForm: React.FC = () => {
             )}
           </div>
 
-          <div>
-            <label className="block text-lg sm:text-xl text-white mb-2">Document Links (Optional)</label>
-            <input
-              {...register('doc_links')}
-              className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none"
-              placeholder="Enter document links (comma-separated)"
-            />
-          </div>
+          {task?.require_learnings && (
+            <div>
+              <label className="block text-lg sm:text-xl text-white mb-2">What have you learnt from this task (100-200 words)</label>
+              <textarea
+                {...register('learnings', {
+                  required: 'Learnings is required',
+                  validate: (value) => {
+                    const words = value.trim().split(/\s+/).filter(word => word.length > 0);
+                    const wordCount = words.length;
+                    return (wordCount >= 100 && wordCount <= 200) || 'Must be between 100 and 200 words';
+                  },
+                })}
+                className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none h-40"
+                placeholder="Write about what you have learned from this task (100-200 words)..."
+              />
+              {errors.learnings && <p className="text-red-500 text-sm mt-1">{errors.learnings.message}</p>}
+            </div>
+          )}
 
-          <div>
-            <label className="block text-lg sm:text-xl text-white mb-2">What have you learnt from this task (50-70 words)</label>
-            <textarea
-              {...register('learnings', {
-                required: 'Learnings is required',
-                validate: (value) => {
-                  const words = value.trim().split(/\s+/).filter(word => word.length > 0);
-                  const wordCount = words.length;
-                  return (wordCount >= 50 && wordCount <= 70) || 'Must be between 50 and 70 words';
-                },
-              })}
-              className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none h-40"
-              placeholder="Write about what you have learned from this task (50-70 words)..."
-            />
-            {errors.learnings && <p className="text-red-500 text-sm mt-1">{errors.learnings.message}</p>}
-          </div>
+          {task?.require_doc_links && (
+            <div>
+              <label className="block text-lg sm:text-xl text-white mb-2">Document Link</label>
+              <input
+                {...register('doc_links')}
+                className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none"
+                placeholder="Enter document link (e.g., Google Drive URL)"
+              />
+            </div>
+          )}
 
           <div className="flex justify-end gap-4">
             <button
