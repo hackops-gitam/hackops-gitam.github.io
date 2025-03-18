@@ -39,6 +39,7 @@ interface FormData {
   registration_number: string;
   batch: string;
   image: FileList;
+  learnings: string; // New field for learnings
 }
 
 export function MembersPortal() {
@@ -63,7 +64,7 @@ export function MembersPortal() {
   const [finalScore, setFinalScore] = useState<number | null>(null);
 
   const { register, handleSubmit, watch, control, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
-    defaultValues: { event_name: '', batch: '' },
+    defaultValues: { event_name: '', batch: '', learnings: '' }, // Initialize learnings
   });
   const discipline = watch('discipline');
 
@@ -175,6 +176,15 @@ export function MembersPortal() {
       return;
     }
 
+    // Validate word count for learnings (100-200 words)
+    const words = data.learnings.trim().split(/\s+/).filter(word => word.length > 0);
+    const wordCount = words.length;
+    if (wordCount < 100 || wordCount > 200) {
+      setSubmissionError('Learnings must be between 100 and 200 words.');
+      setSubmissionStatus('error');
+      return;
+    }
+
     try {
       const file = data.image[0];
       let imageUrl = null;
@@ -204,6 +214,7 @@ export function MembersPortal() {
         batch: data.batch,
         image_url: imageUrl,
         quiz_score: finalScore ? Math.round(finalScore) : null,
+        learnings: data.learnings, // Save learnings to the learnings column
       });
       if (dbError) throw dbError;
 
@@ -633,6 +644,23 @@ export function MembersPortal() {
                       <img src={imagePreview} alt="Preview" className="max-w-full max-h-40 object-cover rounded-md" />
                     </div>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm sm:text-lg text-white mb-2">What have you learnt from this task (100-200 words)</label>
+                  <textarea
+                    {...register('learnings', {
+                      required: 'Learnings is required',
+                      validate: (value) => {
+                        const words = value.trim().split(/\s+/).filter(word => word.length > 0);
+                        const wordCount = words.length;
+                        return (wordCount >= 100 && wordCount <= 200) || 'Must be between 100 and 200 words';
+                      },
+                    })}
+                    className="w-full p-2 sm:p-3 rounded bg-navy text-white border border-gray-800 focus:border-cyan text-sm sm:text-base h-40"
+                    placeholder="Write about what you have learned from this task (100-200 words)..."
+                  />
+                  {errors.learnings && <p className="text-red-500 mt-1 text-xs sm:text-sm">{errors.learnings.message}</p>}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">

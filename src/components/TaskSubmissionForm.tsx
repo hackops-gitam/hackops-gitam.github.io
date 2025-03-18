@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react'; // Added useEffect for initial render check
-import { useForm, Controller } from 'react-hook-form';
-import { Button } from './ui/Button';
-import { Card } from './ui/Card';
+import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { supabase } from '../supabaseClient';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface FormData {
-  event_name: string;
   name: string;
   email: string;
   phone: string;
@@ -15,98 +13,102 @@ interface FormData {
   registration_number: string;
   batch: string;
   image: FileList;
-  learnings: string;
+  learnings: string; // Updated to match 100-200 word requirement
   doc_links: string;
 }
 
-interface TaskSubmissionFormProps {
-  eventName: string;
-}
-
-const yearOptions = ['I Year', 'II Year', 'III Year', 'IV Year', 'V Year'];
-const disciplineOptions = ['Engineering', 'Management', 'Science', 'Other'];
-const programOptions: { [key: string]: string[] } = {
-  Engineering: [
-    'B.Tech. Aerospace Engineering',
-    'B.Tech. Civil Engineering with Computer Application',
-    'B.Tech. Computer Science and Engineering',
-    'B.Tech. Computer Science and Engineering (Artificial Intelligence and Machine Learning)',
-    'B.Tech. Computer Science and Engineering (Cyber Security)',
-    'B.Tech. Computer Science and Engineering (Data Science)',
-    'B.Tech. Electrical and Computer Engineering',
-    'B.Tech. Electronics and Communication Engineering',
-    'B.Tech. Electronics Engineering (VLSI Design and Technology)',
-    'B.Tech. Mechanical Engineering',
-    'B.Tech. Robotics and Artificial Intelligence',
-  ],
-  Science: [
-    'B.Optometry',
-    'B.Sc. Computer Science with Cognitive Systems',
-    'B.Sc. with major in Biotechnology',
-    'B.Sc. with major in Chemistry',
-    'B.Sc. with major in Food Science & Technology',
-    'B.Sc. with major in Physics',
-    'B.Sc. with major in Statistics',
-  ],
-  Management: [
-    'B.Com. (ACCA)',
-    'Bachelor of Business Administration',
-    'BBA (Business Analytics)',
-    'BBA (Financial Markets)',
-  ],
-  Other: ['Other'],
-};
-
-const batchOptions = ['Wednesday Batch', 'Thursday Batch'];
-
-export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
-  const { register, handleSubmit, watch, control, formState: { errors, isSubmitting } } = useForm<FormData>({
-    defaultValues: { event_name: eventName, batch: '' },
+const TaskSubmissionForm: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { register, handleSubmit, watch, control, formState: { errors, isSubmitting }, reset } = useForm<FormData>({
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      year: '',
+      discipline: '',
+      program: '',
+      registration_number: '',
+      batch: '',
+      learnings: '', // Initialize learnings
+      doc_links: '',
+    },
   });
-  const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
+
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [submissionSuccess, setSubmissionSuccess] = useState<boolean>(false);
+  const discipline = watch('discipline');
+
+  const yearOptions = ['I Year', 'II Year', 'III Year', 'IV Year', 'V Year'];
+  const disciplineOptions = ['Engineering', 'Management', 'Science', 'Other'];
+  const programOptions: { [key: string]: string[] } = {
+    Engineering: [
+      'B.Tech. Aerospace Engineering',
+      'B.Tech. Civil Engineering with Computer Application',
+      'B.Tech. Computer Science and Engineering',
+      'B.Tech. Computer Science and Engineering (Artificial Intelligence and Machine Learning)',
+      'B.Tech. Computer Science and Engineering (Cyber Security)',
+      'B.Tech. Computer Science and Engineering (Data Science)',
+      'B.Tech. Electrical and Computer Engineering',
+      'B.Tech. Electronics and Communication Engineering',
+      'B.Tech. Electronics Engineering (VLSI Design and Technology)',
+      'B.Tech. Mechanical Engineering',
+      'B.Tech. Robotics and Artificial Intelligence',
+    ],
+    Science: [
+      'B.Optometry',
+      'B.Sc. Computer Science with Cognitive Systems',
+      'B.Sc. with major in Biotechnology',
+      'B.Sc. with major in Chemistry',
+      'B.Sc. with major in Food Science & Technology',
+      'B.Sc. with major in Physics',
+      'B.Sc. with major in Statistics',
+    ],
+    Management: [
+      'B.Com. (ACCA)',
+      'Bachelor of Business Administration',
+      'BBA (Business Analytics)',
+      'BBA (Financial Markets)',
+    ],
+    Other: ['II Year B.Optometry'],
+  };
+  const batchOptions = ['Wednesday Batch', 'Thursday Batch'];
 
   useEffect(() => {
-    console.log('TaskSubmissionForm mounted with eventName:', eventName);
-    console.log('Rendering form - Checking all fields');
-  }, [eventName]);
+    console.log('Form initialized with location:', location);
+  }, [location]);
 
-  const discipline = watch('discipline');
-  const learningsText = watch('learnings') || '';
-  const wordCount = learningsText.trim().split(/\s+/).filter(Boolean).length;
-
-  const onFormSubmit = async (data: FormData) => {
+  const onSubmit = async (data: FormData) => {
     setSubmissionError(null);
-    console.log('Form data submitted:', data);
+    setSubmissionSuccess(false);
+
+    // Validate word count for learnings (100-200 words)
+    const words = data.learnings.trim().split(/\s+/).filter(word => word.length > 0);
+    const wordCount = words.length;
+    if (wordCount < 50 || wordCount > 70) {
+      setSubmissionError('Learnings must be between 50 and 70 words.');
+      return;
+    }
 
     try {
-      if (wordCount < 100 || wordCount > 200) {
-        throw new Error('Your response for "What did you learn?" must be between 100 and 200 words.');
-      }
-
+      const file = data.image[0];
       let imageUrl = null;
-      if (data.image && data.image.length > 0) {
-        const file = data.image[0];
-        console.log('Uploading image:', file?.name);
-        const fileName = `${Date.now()}_${file?.name || 'image'}`;
-        const { error: uploadError } = await supabase.storage
+      if (file) {
+        const fileName = `${Date.now()}_${file.name}`;
+        const { error: uploadError, data: uploadData } = await supabase.storage
           .from('task-submissions-images')
           .upload(`public/${fileName}`, file, {
             cacheControl: '3600',
             upsert: false,
           });
-        if (uploadError) {
-          console.error('Upload error details:', uploadError);
-          throw new Error(`Image upload failed: ${uploadError.message}`);
-        }
+        if (uploadError) throw uploadError;
+
         imageUrl = `${supabase.storage.from('task-submissions-images').getPublicUrl('public/' + fileName).data.publicUrl}`;
-        console.log('Image URL generated:', imageUrl);
       }
 
-      console.log('Submitting to database with doc_links:', data.doc_links);
-      const { error: dbError } = await supabase.from('task_submissions').insert({
-        event_name: data.event_name,
+      const { error } = await supabase.from('task_submissions').insert({
+        event_name: 'Custom Form Submission', // Default event_name, adjust if task-specific
         name: data.name,
         email: data.email,
         phone: data.phone,
@@ -117,203 +119,209 @@ export function TaskSubmissionForm({ eventName }: TaskSubmissionFormProps) {
         timestamp: new Date().toISOString(),
         batch: data.batch,
         image_url: imageUrl,
-        learnings: data.learnings,
-        doc_links: data.doc_links || null,
+        learnings: data.learnings, // Save learnings to the learnings column
+        doc_links: data.doc_links,
       });
-      if (dbError) {
-        console.error('Database error details:', dbError);
-        throw new Error(`Database insertion failed: ${dbError.message}`);
-      }
 
-      setSubmissionStatus('success');
-    } catch (error) {
-      console.error('Submission error details:', error);
-      setSubmissionError(error.message || 'Submission failed. Please try again.');
-      setSubmissionStatus('error');
+      if (error) throw error;
+
+      setSubmissionSuccess(true);
+      reset();
+      setImagePreview(null);
+      console.log('Submission successful, navigating back');
+      navigate('/members-portal');
+    } catch (err) {
+      setSubmissionError(err.message || 'Submission failed. Please try again.');
+      console.error('Submission error:', err);
     }
   };
 
   return (
-    <Card className="mt-6 p-6 bg-navy-light border-cyan">
-      <h2 className="text-2xl font-bold text-cyan mb-6">Task Submission</h2>
-      <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
-        <div>
-          <label className="block text-white">Event Name</label>
-          <input
-            type="text"
-            value={eventName}
-            readOnly
-            className="w-full p-2 rounded bg-navy text-white border border-gray-800"
-          />
-        </div>
-        <div>
-          <label className="block text-white">Name</label>
-          <input
-            {...register('name', { required: 'Name is required' })}
-            className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
-          />
-          {errors.name && <p className="text-red-500">{errors.name.message}</p>}
-        </div>
-        <div>
-          <label className="block text-white">Email</label>
-          <input
-            {...register('email', {
-              required: 'Email is required',
-              pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email format' },
-            })}
-            className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
-          />
-          {errors.email && <p className="text-red-500">{errors.email.message}</p>}
-        </div>
-        <div>
-          <label className="block text-white">Phone</label>
-          <input
-            {...register('phone', {
-              required: 'Phone is required',
-              pattern: { value: /^[0-9]{10}$/, message: 'Must be a 10-digit number' },
-            })}
-            className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
-          />
-          {errors.phone && <p className="text-red-500">{errors.phone.message}</p>}
-        </div>
-        <div>
-          <label className="block text-white">Year</label>
-          <select
-            {...register('year', { required: 'Year is required' })}
-            className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
-          >
-            <option value="">Select Year</option>
-            {yearOptions.map((year) => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
-          {errors.year && <p className="text-red-500">{errors.year.message}</p>}
-        </div>
-        <div>
-          <label className="block text-white">Discipline</label>
-          <select
-            {...register('discipline', { required: 'Discipline is required' })}
-            className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
-          >
-            <option value="">Select Discipline</option>
-            {disciplineOptions.map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-          {errors.discipline && <p className="text-red-500">{errors.discipline.message}</p>}
-        </div>
-        {discipline && (
+    <div className="min-h-screen bg-navy-light text-white p-4 sm:p-6 lg:p-8">
+      <div className="max-w-2xl mx-auto">
+        <h2 className="text-3xl sm:text-4xl font-bold text-cyan text-center mb-8">Task Submission Form</h2>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-navy p-6 rounded-lg shadow-lg border-2 border-cyan">
           <div>
-            <label className="block text-white">Program</label>
-            <Controller
-              name="program"
-              control={control}
-              rules={{ required: 'Program is required' }}
-              render={({ field }) => (
-                <select
-                  {...field}
-                  className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
-                >
-                  <option value="">Select Program</option>
-                  {programOptions[discipline]?.map((prog) => (
-                    <option key={prog} value={prog}>{prog}</option>
-                  ))}
-                </select>
-              )}
+            <label className="block text-lg sm:text-xl text-white mb-2">Name</label>
+            <input
+              {...register('name', { required: 'Name is required' })}
+              className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none"
+              placeholder="Enter your name"
             />
-            {errors.program && <p className="text-red-500">{errors.program.message}</p>}
+            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
           </div>
-        )}
-        <div>
-          <label className="block text-white">Registration Number</label>
-          <input
-            {...register('registration_number', { required: 'Registration Number is required' })}
-            className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
-            placeholder="Enter your registration number"
-          />
-          {errors.registration_number && <p className="text-red-500">{errors.registration_number.message}</p>}
-        </div>
-        <div>
-          <label className="block text-white">Batch</label>
-          <select
-            {...register('batch', { required: 'Batch is required' })}
-            className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
-          >
-            <option value="">Select Batch</option>
-            {batchOptions.map((batch) => (
-              <option key={batch} value={batch}>{batch}</option>
-            ))}
-          </select>
-          {errors.batch && <p className="text-red-500">{errors.batch.message}</p>}
-        </div>
-        <div>
-          <label className="block text-white">Upload Task Image (Optional)</label>
-          <input
-            type="file"
-            accept="image/*"
-            {...register('image')}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                const previewUrl = URL.createObjectURL(file);
-                setImagePreview(previewUrl);
-              } else {
-                setImagePreview(null);
-              }
-            }}
-            className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
-          />
-          {errors.image && <p className="text-red-500">{errors.image.message}</p>}
-          {imagePreview && (
-            <div className="mt-2">
-              <img src={imagePreview} alt="Preview" className="max-w-xs max-h-32 object-cover" />
+
+          <div>
+            <label className="block text-lg sm:text-xl text-white mb-2">Email</label>
+            <input
+              {...register('email', {
+                required: 'Email is required',
+                pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email format' },
+              })}
+              className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none"
+              placeholder="Enter your email"
+            />
+            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-lg sm:text-xl text-white mb-2">Phone</label>
+            <input
+              {...register('phone', {
+                required: 'Phone is required',
+                pattern: { value: /^[0-9]{10}$/, message: 'Must be a 10-digit number' },
+              })}
+              className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none"
+              placeholder="Enter your phone number"
+            />
+            {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-lg sm:text-xl text-white mb-2">Year</label>
+            <select
+              {...register('year', { required: 'Year is required' })}
+              className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none"
+            >
+              <option value="">Select Year</option>
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+            {errors.year && <p className="text-red-500 text-sm mt-1">{errors.year.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-lg sm:text-xl text-white mb-2">Discipline</label>
+            <select
+              {...register('discipline', { required: 'Discipline is required' })}
+              className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none"
+            >
+              <option value="">Select Discipline</option>
+              {disciplineOptions.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+            {errors.discipline && <p className="text-red-500 text-sm mt-1">{errors.discipline.message}</p>}
+          </div>
+
+          {discipline && (
+            <div>
+              <label className="block text-lg sm:text-xl text-white mb-2">Program</label>
+              <select
+                {...register('program', { required: 'Program is required' })}
+                className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none"
+              >
+                <option value="">Select Program</option>
+                {programOptions[discipline]?.map((prog) => (
+                  <option key={prog} value={prog}>{prog}</option>
+                ))}
+              </select>
+              {errors.program && <p className="text-red-500 text-sm mt-1">{errors.program.message}</p>}
             </div>
           )}
-        </div>
-        <div>
-          <label className="block text-white">What did you learn from this task? Please explain your key takeaways from this task (100–200 words)</label>
-          <textarea
-            {...register('learnings', { required: 'This field is required' })}
-            className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
-            rows={6}
-          />
-          <p className="text-gray-400 text-sm mt-1">Word count: {wordCount} (100–200 words required)</p>
-          {errors.learnings && <p className="text-red-500">{errors.learnings.message}</p>}
-        </div>
-        <div>
-          <label className="block text-white">Add links to PDFs/Docs (Optional)</label>
-          <input
-            type="url"
-            {...register('doc_links', {
-              pattern: { value: /^(https?:\/\/[^\s]+)?$/, message: 'Invalid URL format' },
-            })}
-            className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
-            placeholder="https://example.com/document.pdf"
-          />
-          {errors.doc_links && <p className="text-red-500">{errors.doc_links.message}</p>}
-        </div>
-        <Button type="submit" variant="primary" disabled={isSubmitting}>
-          {isSubmitting ? 'Submitting...' : 'Submit Task'}
-        </Button>
-      </form>
-      {submissionStatus === 'success' && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <Card className="p-6 max-w-md text-center">
-            <p className="text-cyan text-lg mb-4">Task Submission Successful!</p>
-            <Button
-              onClick={() => setSubmissionStatus(null)}
-              className="mt-4 w-full sm:w-auto px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition duration-300"
+
+          <div>
+            <label className="block text-lg sm:text-xl text-white mb-2">Registration Number</label>
+            <input
+              {...register('registration_number', { required: 'Registration Number is required' })}
+              className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none"
+              placeholder="Enter your registration number"
+            />
+            {errors.registration_number && <p className="text-red-500 text-sm mt-1">{errors.registration_number.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-lg sm:text-xl text-white mb-2">Batch</label>
+            <select
+              {...register('batch', { required: 'Batch is required' })}
+              className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none"
             >
-              Close
-            </Button>
-          </Card>
-        </div>
-      )}
-      {submissionStatus === 'error' && submissionError && (
-        <div className="mt-4 text-red-500">
-          {submissionError}
-        </div>
-      )}
-    </Card>
+              <option value="">Select Batch</option>
+              {batchOptions.map((batch) => (
+                <option key={batch} value={batch}>{batch}</option>
+              ))}
+            </select>
+            {errors.batch && <p className="text-red-500 text-sm mt-1">{errors.batch.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-lg sm:text-xl text-white mb-2">Upload Task Image (Optional)</label>
+            <input
+              type="file"
+              accept="image/*"
+              {...register('image')}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const previewUrl = URL.createObjectURL(file);
+                  setImagePreview(previewUrl);
+                }
+              }}
+              className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none"
+            />
+            {imagePreview && (
+              <div className="mt-4">
+                <img src={imagePreview} alt="Preview" className="max-w-full max-h-40 object-cover rounded-md" />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-lg sm:text-xl text-white mb-2">Document Links (Optional)</label>
+            <input
+              {...register('doc_links')}
+              className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none"
+              placeholder="Enter document links (comma-separated)"
+            />
+          </div>
+
+          <div>
+            <label className="block text-lg sm:text-xl text-white mb-2">What have you learnt from this task (50-70 words)</label>
+            <textarea
+              {...register('learnings', {
+                required: 'Learnings is required',
+                validate: (value) => {
+                  const words = value.trim().split(/\s+/).filter(word => word.length > 0);
+                  const wordCount = words.length;
+                  return (wordCount >= 50 && wordCount <= 70) || 'Must be between 50 and 70 words';
+                },
+              })}
+              className="w-full p-2 sm:p-3 rounded bg-navy-dark text-white border border-gray-700 focus:border-cyan focus:outline-none h-40"
+              placeholder="Write about what you have learned from this task (50-70 words)..."
+            />
+            {errors.learnings && <p className="text-red-500 text-sm mt-1">{errors.learnings.message}</p>}
+          </div>
+
+          <div className="flex justify-end gap-4">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-cyan text-navy-dark rounded hover:bg-blue-600 transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                reset();
+                setImagePreview(null);
+                navigate('/members-portal');
+              }}
+              className="px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition duration-300"
+            >
+              Cancel
+            </button>
+          </div>
+
+          {submissionError && <p className="text-red-500 text-sm mt-4">{submissionError}</p>}
+          {submissionSuccess && (
+            <p className="text-green-500 text-sm mt-4">Submission successful! Redirecting...</p>
+          )}
+        </form>
+      </div>
+    </div>
   );
-}
+};
+
+export default TaskSubmissionForm;
