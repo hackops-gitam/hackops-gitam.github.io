@@ -67,7 +67,7 @@ export function MembersPortal() {
   });
   const discipline = watch('discipline');
 
-  const currentDate = new Date('2025-03-13');
+  const currentDate = new Date('2025-03-18'); // Updated to current date
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -100,8 +100,11 @@ export function MembersPortal() {
       if (task && task.use_custom_form) {
         if (isDeadlineCrossed(task.submission_deadline)) {
           setDeadlineCrossedTask(task);
+          setSubmissionTask(null); // Prevent submission form from opening
+          setQuizTask(null);
         } else {
           setQuizTask(task);
+          setDeadlineCrossedTask(null);
         }
       }
       // Clear the query params after handling
@@ -111,7 +114,7 @@ export function MembersPortal() {
 
   useEffect(() => {
     if (quizTask) {
-      fetchQuizQuestions(quizTask.task_id); // Use task_id for quiz lookup
+      fetchQuizQuestions(quizTask.task_id);
     }
   }, [quizTask]);
 
@@ -161,6 +164,14 @@ export function MembersPortal() {
     if (!submissionTask) {
       setSubmissionError('Task not found.');
       setSubmissionStatus('error');
+      return;
+    }
+
+    // Check deadline before submission
+    if (isDeadlineCrossed(submissionTask.submission_deadline)) {
+      setSubmissionError('Submission deadline has passed.');
+      setSubmissionStatus('error');
+      setSubmissionTask(null); // Reset to prevent form resubmission
       return;
     }
 
@@ -254,6 +265,7 @@ export function MembersPortal() {
 
   const isDeadlineCrossed = (deadline: string) => {
     const deadlineDate = new Date(deadline);
+    console.log(`Checking deadline: ${deadline} against ${currentDate}`);
     return deadlineDate < currentDate;
   };
 
@@ -665,7 +677,7 @@ export function MembersPortal() {
         )}
       </AnimatePresence>
 
-      {/* Glassmorphism Pop-up for Deadline Crossed */}
+      {/* Glassmorphism Pop-up for Deadline Crossed (Fixed to Ensure Display) */}
       <AnimatePresence>
         {deadlineCrossedTask && (
           <motion.div
@@ -693,7 +705,10 @@ export function MembersPortal() {
               <Button
                 variant="secondary"
                 className="w-full py-3 text-base sm:text-lg"
-                onClick={() => setDeadlineCrossedTask(null)}
+                onClick={() => {
+                  setDeadlineCrossedTask(null); // Ensure state is cleared
+                  setSubmissionTask(null); // Prevent submission form from opening
+                }}
               >
                 Close
               </Button>
