@@ -28,10 +28,21 @@ interface QuizQuestion {
   correct_answer: string;
 }
 
+interface RegisteredUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
+interface UserFormData {
+  email: string;
+  name: string;
+}
+
 export function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'events' | 'submissions' | 'tasks' | 'quizzes'>('events');
+  const [activeTab, setActiveTab] = useState<'events' | 'submissions' | 'tasks' | 'quizzes' | 'users'>('events');
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null); // Changed to task_id
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [question, setQuestion] = useState('');
   const [optionA, setOptionA] = useState('');
@@ -41,23 +52,26 @@ export function AdminDashboard() {
   const [correctAnswer, setCorrectAnswer] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
+  const [userError, setUserError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTasks();
+    fetchRegisteredUsers();
   }, []);
 
   useEffect(() => {
     if (selectedTaskId) {
       fetchQuizQuestions(selectedTaskId);
     } else {
-      setQuizQuestions([]); // Clear questions if no task is selected
+      setQuizQuestions([]);
     }
   }, [selectedTaskId]);
 
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('tasks').select('*'); // Fetch all columns
+      const { data, error } = await supabase.from('tasks').select('*');
       if (error) throw error;
       setTasks(data || []);
     } catch (err) {
@@ -77,6 +91,19 @@ export function AdminDashboard() {
     }
   };
 
+  const fetchRegisteredUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('registered_users')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setRegisteredUsers(data || []);
+    } catch (err) {
+      setUserError(err.message || 'Failed to fetch registered users.');
+    }
+  };
+
   const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -89,7 +116,6 @@ export function AdminDashboard() {
     }
 
     try {
-      // Validate task_id exists (additional safety check)
       const { data: taskExists } = await supabase
         .from('tasks')
         .select('task_id')
@@ -115,7 +141,7 @@ export function AdminDashboard() {
       setOptionD('');
       setCorrectAnswer('');
       setError('Question added successfully!');
-      fetchQuizQuestions(selectedTaskId); // Refresh the questions list
+      fetchQuizQuestions(selectedTaskId);
     } catch (err) {
       setError(err.message || 'Failed to add question.');
       console.error('Quiz insertion error:', err);
@@ -129,9 +155,55 @@ export function AdminDashboard() {
       const { error } = await supabase.from('task_quizzes').delete().eq('id', questionId);
       if (error) throw error;
       setError('Question deleted successfully!');
-      if (selectedTaskId) fetchQuizQuestions(selectedTaskId); // Refresh the questions list
+      if (selectedTaskId) fetchQuizQuestions(selectedTaskId);
     } catch (err) {
       setError(err.message || 'Failed to delete question.');
+    }
+  };
+
+  const handleAddUser = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setUserError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email')?.toString().toLowerCase().trim();
+    const name = formData.get('name')?.toString().trim();
+
+    if (!email || !name) {
+      setUserError('Email and name are required.');
+      return;
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setUserError('Invalid email format.');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('registered_users')
+        .insert([{ email, name }]);
+      if (error) throw error;
+      fetchRegisteredUsers();
+      e.currentTarget.reset();
+      setUserError('User added successfully!');
+    } catch (err) {
+      setUserError(err.message || 'Failed to add user.');
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+    try {
+      const { error } = await supabase
+        .from('registered_users')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      fetchRegisteredUsers();
+      setUserError('User deleted successfully!');
+    } catch (err) {
+      setUserError(err.message || 'Failed to delete user.');
     }
   };
 
@@ -173,6 +245,12 @@ export function AdminDashboard() {
           onClick={() => setActiveTab('quizzes')}
         >
           Manage Quizzes
+        </Button>
+        <Button
+          variant={activeTab === 'users' ? 'primary' : 'secondary'}
+          onClick={() => setActiveTab('users')}
+        >
+          Manage Users
         </Button>
       </div>
 
@@ -299,6 +377,77 @@ export function AdminDashboard() {
                             variant="danger"
                             className="py-1 px-2 text-sm sm:text-base"
                             onClick={() => handleDeleteQuestion(quizQuestion.id)}
+                          >
+                            Delete
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      {activeTab === 'users' && (
+        <div className="space-y-8">
+          {userError && <p className={userError.includes('successfully') ? 'text-green-500' : 'text-red-500'}>{userError}</p>}
+          {/* Form to Add Users */}
+          <div>
+            <h2 className="text-xl sm:text-2xl font-semibold text-cyan mb-4">Add New User</h2>
+            <form onSubmit={handleAddUser} className="space-y-6">
+              <div>
+                <label className="block text-lg sm:text-xl text-white mb-2">Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  className="w-full p-3 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
+                  placeholder="user@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-lg sm:text-xl text-white mb-2">Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  className="w-full p-3 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
+                  placeholder="User Name"
+                />
+              </div>
+              <Button
+                type="submit"
+                variant="primary"
+                className="w-full py-3 text-lg sm:text-xl"
+              >
+                Add User
+              </Button>
+            </form>
+          </div>
+
+          {/* Table to Display and Delete Users */}
+          {registeredUsers.length > 0 && (
+            <div>
+              <h2 className="text-xl sm:text-2xl font-semibold text-cyan mb-4">Registered Users</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-white min-w-[600px]">
+                  <thead>
+                    <tr className="bg-navy-dark">
+                      <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Email</th>
+                      <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Name</th>
+                      <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {registeredUsers.map((user) => (
+                      <tr key={user.id} className="hover:bg-navy-light/50">
+                        <td className="p-3 sm:p-4 text-sm sm:text-base">{user.email}</td>
+                        <td className="p-3 sm:p-4 text-sm sm:text-base">{user.name}</td>
+                        <td className="p-3 sm:p-4 text-sm sm:text-base">
+                          <Button
+                            variant="danger"
+                            className="py-1 px-2 text-sm sm:text-base"
+                            onClick={() => handleDeleteUser(user.id)}
                           >
                             Delete
                           </Button>

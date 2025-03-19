@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -16,7 +16,7 @@ interface Task {
   task_description: string;
   use_custom_form: boolean;
   require_doc_links: boolean;
-  require_learnings: boolean; // New field
+  require_learnings: boolean;
 }
 
 interface QuizQuestion {
@@ -41,8 +41,17 @@ interface FormData {
   registration_number: string;
   batch: string;
   image: FileList;
-  learnings?: string; // Optional since it may not be required
-  doc_links?: string; // Optional since it may not be required
+  learnings?: string;
+  doc_links?: string;
+}
+
+interface AuthFormData {
+  email: string;
+}
+
+interface RegisteredUser {
+  email: string;
+  name: string;
 }
 
 export function MembersPortal() {
@@ -65,12 +74,21 @@ export function MembersPortal() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [quizResult, setQuizResult] = useState<'passed' | 'failed' | null>(null);
   const [finalScore, setFinalScore] = useState<number | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  const navigate = useNavigate();
 
   const { register, handleSubmit, watch, control, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
     defaultValues: { event_name: '', batch: '', learnings: '', doc_links: '' },
   });
-  const discipline = watch('discipline');
 
+  const { register: registerAuth, handleSubmit: handleAuthSubmit, formState: { errors: authErrors } } = useForm<AuthFormData>({
+    defaultValues: { email: '' },
+  });
+
+  const discipline = watch('discipline');
   const currentDate = new Date('2025-03-18');
 
   useEffect(() => {
@@ -87,8 +105,10 @@ export function MembersPortal() {
       }
     };
 
-    fetchTasks();
-  }, []);
+    if (isAuthenticated) {
+      fetchTasks();
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -176,22 +196,6 @@ export function MembersPortal() {
       return;
     }
 
-    // Validate learnings only if required
-    if (submissionTask.require_learnings) {
-      const words = data.learnings?.trim().split(/\s+/).filter(word => word.length > 0) || [];
-      const wordCount = words.length;
-      if (!data.learnings) {
-        setSubmissionError('Learnings is required.');
-        setSubmissionStatus('error');
-        return;
-      }
-      if (wordCount < 100 || wordCount > 200) {
-        setSubmissionError('Learnings must be between 100 and 200 words.');
-        setSubmissionStatus('error');
-        return;
-      }
-    }
-
     try {
       const file = data.image[0];
       let imageUrl = null;
@@ -221,8 +225,8 @@ export function MembersPortal() {
         batch: data.batch,
         image_url: imageUrl,
         quiz_score: finalScore ? Math.round(finalScore) : null,
-        learnings: submissionTask.require_learnings ? data.learnings : null, // Only include if required
-        doc_links: submissionTask.require_doc_links ? data.doc_links : null, // Only include if required
+        learnings: submissionTask.require_learnings ? data.learnings : null,
+        doc_links: submissionTask.require_doc_links ? data.doc_links : null,
       });
       if (dbError) throw dbError;
 
@@ -234,6 +238,38 @@ export function MembersPortal() {
     } catch (err) {
       setSubmissionError(err.message || 'Submission failed. Please try again.');
       setSubmissionStatus('error');
+    }
+  };
+
+  const onAuthSubmit = async (data: AuthFormData) => {
+    setAuthError(null);
+    try {
+      const { data: user, error } = await supabase
+        .from('registered_users')
+        .select('email, name')
+        .eq('email', data.email.toLowerCase().trim())
+        .single();
+      if (error || !user) {
+        setAuthError('Email not found. Please contact the admin to register.');
+        return;
+      }
+
+      const { data: submissions, error: submissionError } = await supabase
+        .from('task_submissions')
+        .select('email')
+        .eq('email', data.email.toLowerCase().trim())
+        .limit(1);
+      if (submissionError) throw submissionError;
+      if (!submissions || submissions.length === 0) {
+        setAuthError('No submissions found for this email. Please submit a task first.');
+        return;
+      }
+
+      setUserName(user.name);
+      setIsAuthenticated(true);
+      setShowWelcomePopup(true);
+    } catch (err) {
+      setAuthError(err.message || 'Authentication failed. Please try again.');
     }
   };
 
@@ -282,6 +318,20 @@ export function MembersPortal() {
     exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2, ease: 'easeIn' } },
   };
 
+  const glitchVariants = {
+    initial: { opacity: 1 },
+    animate: {
+      opacity: [1, 0.8, 1, 0.9, 1],
+      x: [0, -2, 2, -1, 0],
+      transition: {
+        duration: 0.5,
+        repeat: 3,
+        repeatType: 'loop' as const,
+        ease: 'easeInOut',
+      },
+    },
+  };
+
   const isDeadlineCrossed = (deadline: string) => {
     const deadlineDate = new Date(deadline);
     return deadlineDate < currentDate;
@@ -315,163 +365,270 @@ export function MembersPortal() {
 
   return (
     <div className="min-h-screen bg-navy-light text-white p-4 sm:p-6 lg:p-8">
-      <Card className="p-6 sm:p-8 bg-navy border-2 border-cyan rounded-lg shadow-lg">
-        <h2 className="text-3xl sm:text-4xl font-bold text-cyan text-center mb-8">Members Portal</h2>
-        <div className="flex flex-wrap justify-center gap-4 mb-8">
-          <Button
-            variant={activeTab === 'submissions' ? 'primary' : 'secondary'}
-            onClick={() => {
-              setActiveTab('submissions');
-              setSearchParams({});
-            }}
-            className="px-6 py-3 text-lg sm:text-xl"
+      {/* Authentication Overlay */}
+      <AnimatePresence>
+        {!isAuthenticated && (
+          <motion.div
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
           >
-            Task Submissions
-          </Button>
-          <Button
-            variant={activeTab === 'status' ? 'primary' : 'secondary'}
-            onClick={() => setActiveTab('status')}
-            className="px-6 py-3 text-lg sm:text-xl"
-          >
-            Submission Status
-          </Button>
-        </div>
+            <motion.div
+              variants={popupVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="p-6 max-w-md w-full rounded-lg shadow-lg backdrop-blur-md bg-white/10 border border-white/20"
+              style={{ backdropFilter: 'blur(10px)' }}
+            >
+              <h2 className="text-2xl sm:text-3xl font-bold text-cyan mb-6 text-center">
+                Please Enter Your Registered Email ID to Continue
+              </h2>
+              <form onSubmit={handleAuthSubmit(onAuthSubmit)} className="space-y-4">
+                <div>
+                  <label className="block text-white mb-2">Email</label>
+                  <input
+                    {...registerAuth('email', {
+                      required: 'Email is required',
+                      pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email format' },
+                    })}
+                    className="w-full p-2 rounded bg-navy text-white border border-gray-800 focus:border-cyan"
+                    placeholder="your@email.com"
+                  />
+                  {authErrors.email && <p className="text-red-500 mt-1">{authErrors.email.message}</p>}
+                  {authError && <p className="text-red-500 mt-2">{authError}</p>}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button type="submit" variant="primary" className="w-full">
+                    Verify Email
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => navigate('/')}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        {activeTab === 'submissions' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loading ? (
-              <p className="text-center text-lg">Loading tasks...</p>
-            ) : tasks.length > 0 ? (
-              tasks.map((task) =>
-                task.use_custom_form ? (
-                  <Card
-                    key={task.id}
-                    className="p-6 bg-navy-light border-cyan rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
-                  >
-                    <h3 className="text-2xl font-semibold text-cyan mb-4">{task.task_name}</h3>
-                    <p className="text-gray-300 mb-2">
-                      <span className="font-medium">Start Date:</span> {task.date}
-                    </p>
-                    <p className="text-gray-300 mb-6">
-                      <span className="font-medium">Deadline:</span> {task.submission_deadline}
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <Button
-                        variant="secondary"
-                        className="w-full py-3 text-lg"
-                        onClick={() => setSelectedTask(task)}
-                      >
-                        View Task Details
-                      </Button>
-                      <Button
-                        variant="primary"
-                        className="w-full py-3 text-lg"
-                        onClick={() => {
-                          if (isDeadlineCrossed(task.submission_deadline)) {
-                            setDeadlineCrossedTask(task);
-                          } else {
-                            setQuizTask(task);
-                          }
-                        }}
-                      >
-                        Submit Task
-                      </Button>
-                    </div>
-                  </Card>
-                ) : (
-                  <Card
-                    key={task.id}
-                    className="p-6 bg-navy-light border-cyan rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
-                  >
-                    <h3 className="text-2xl font-semibold text-cyan mb-4">{task.task_name}</h3>
-                    <p className="text-gray-300 mb-2">
-                      <span className="font-medium">Start Date:</span> {task.date}
-                    </p>
-                    <p className="text-gray-300 mb-6">
-                      <span className="font-medium">Deadline:</span> {task.submission_deadline}
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <Button
-                        variant="secondary"
-                        className="w-full py-3 text-lg"
-                        onClick={() => setSelectedTask(task)}
-                      >
-                        View Task Details
-                      </Button>
-                      <Link to={`/task-submission/${task.id}`} className="w-full">
-                        <Button variant="primary" className="w-full py-3 text-lg">
+      {/* Welcome Popup with Glitch Animation */}
+      <AnimatePresence>
+        {showWelcomePopup && (
+          <motion.div
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              variants={popupVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="p-6 max-w-md w-full rounded-lg shadow-lg backdrop-blur-md bg-white/10 border border-white/20"
+              style={{ backdropFilter: 'blur(10px)' }}
+            >
+              <h1 className="text-3xl sm:text-4xl font-bold text-cyan mb-4 text-center">
+                Verification Successful
+              </h1>
+              <motion.h4
+                className="text-xl sm:text-2xl font-semibold text-white mb-6 text-center"
+                variants={glitchVariants}
+                initial="initial"
+                animate="animate"
+              >
+                Welcome Back, {userName}!
+              </motion.h4>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  variant="primary"
+                  className="w-full py-3 text-base sm:text-lg"
+                  onClick={() => setShowWelcomePopup(false)}
+                >
+                  Continue
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="w-full py-3 text-base sm:text-lg"
+                  onClick={() => navigate('/')}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content (Visible only after authentication) */}
+      {isAuthenticated && (
+        <Card className="p-6 sm:p-8 bg-navy border-2 border-cyan rounded-lg shadow-lg">
+          <h2 className="text-3xl sm:text-4xl font-bold text-cyan text-center mb-8">Members Portal</h2>
+          <div className="flex flex-wrap justify-center gap-4 mb-8">
+            <Button
+              variant={activeTab === 'submissions' ? 'primary' : 'secondary'}
+              onClick={() => {
+                setActiveTab('submissions');
+                setSearchParams({});
+              }}
+              className="px-6 py-3 text-lg sm:text-xl"
+            >
+              Task Submissions
+            </Button>
+            <Button
+              variant={activeTab === 'status' ? 'primary' : 'secondary'}
+              onClick={() => setActiveTab('status')}
+              className="px-6 py-3 text-lg sm:text-xl"
+            >
+              Submission Status
+            </Button>
+          </div>
+
+          {activeTab === 'submissions' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {loading ? (
+                <p className="text-center text-lg">Loading tasks...</p>
+              ) : tasks.length > 0 ? (
+                tasks.map((task) =>
+                  task.use_custom_form ? (
+                    <Card
+                      key={task.id}
+                      className="p-6 bg-navy-light border-cyan rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+                    >
+                      <h3 className="text-2xl font-semibold text-cyan mb-4">{task.task_name}</h3>
+                      <p className="text-gray-300 mb-2">
+                        <span className="font-medium">Start Date:</span> {task.date}
+                      </p>
+                      <p className="text-gray-300 mb-6">
+                        <span className="font-medium">Deadline:</span> {task.submission_deadline}
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <Button
+                          variant="secondary"
+                          className="w-full py-3 text-lg"
+                          onClick={() => setSelectedTask(task)}
+                        >
+                          View Task Details
+                        </Button>
+                        <Button
+                          variant="primary"
+                          className="w-full py-3 text-lg"
+                          onClick={() => {
+                            if (isDeadlineCrossed(task.submission_deadline)) {
+                              setDeadlineCrossedTask(task);
+                            } else {
+                              setQuizTask(task);
+                            }
+                          }}
+                        >
                           Submit Task
                         </Button>
-                      </Link>
-                    </div>
-                  </Card>
+                      </div>
+                    </Card>
+                  ) : (
+                    <Card
+                      key={task.id}
+                      className="p-6 bg-navy-light border-cyan rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+                    >
+                      <h3 className="text-2xl font-semibold text-cyan mb-4">{task.task_name}</h3>
+                      <p className="text-gray-300 mb-2">
+                        <span className="font-medium">Start Date:</span> {task.date}
+                      </p>
+                      <p className="text-gray-300 mb-6">
+                        <span className="font-medium">Deadline:</span> {task.submission_deadline}
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <Button
+                          variant="secondary"
+                          className="w-full py-3 text-lg"
+                          onClick={() => setSelectedTask(task)}
+                        >
+                          View Task Details
+                        </Button>
+                        <Link to={`/task-submission/${task.id}`} className="w-full">
+                          <Button variant="primary" className="w-full py-3 text-lg">
+                            Submit Task
+                          </Button>
+                        </Link>
+                      </div>
+                    </Card>
+                  )
                 )
-              )
-            ) : (
-              <p className="text-center text-lg mt-6">No tasks available for submission.</p>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'status' && (
-          <div className="space-y-8">
-            <div className="mb-6">
-              <label className="block text-xl sm:text-2xl text-white mb-4">Enter Your Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-3 sm:p-4 rounded bg-navy text-white border border-gray-800 focus:border-cyan focus:outline-none text-sm sm:text-lg"
-                placeholder="your@email.com"
-              />
-              <Button
-                onClick={handleFetchSubmissions}
-                variant="primary"
-                className="w-full mt-6 py-2 sm:py-3 text-base sm:text-lg"
-                disabled={loading || !email}
-              >
-                {loading ? 'Fetching...' : 'Check Status'}
-              </Button>
+              ) : (
+                <p className="text-center text-lg mt-6">No tasks available for submission.</p>
+              )}
             </div>
-            {error && <p className="text-red-500 text-center text-sm sm:text-lg mb-4">{error}</p>}
-            {submissions.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-white min-w-[600px]">
-                  <thead>
-                    <tr className="bg-navy-dark">
-                      <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Task Name</th>
-                      <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Submission Date</th>
-                      <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Status</th>
-                      <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Image</th>
-                      <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Quiz Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {submissions.map((submission, index) => (
-                      <tr key={index} className="hover:bg-navy-light/50">
-                        <td className="p-3 sm:p-4 text-sm sm:text-base">{submission.event_name}</td>
-                        <td className="p-3 sm:p-4 text-sm sm:text-base">{new Date(submission.timestamp).toLocaleString()}</td>
-                        <td className="p-3 sm:p-4 text-sm sm:text-base">{submission.status}</td>
-                        <td className="p-3 sm:p-4 text-sm sm:text-base">
-                          {submission.image_url ? (
-                            <a href={submission.image_url} target="_blank" rel="noopener noreferrer" className="text-cyan underline">
-                              View Image
-                            </a>
-                          ) : 'No Image'}
-                        </td>
-                        <td className="p-3 sm:p-4 text-sm sm:text-base">
-                          {submission.quiz_score !== null ? `${submission.quiz_score}%` : 'N/A'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-      </Card>
+          )}
 
+          {activeTab === 'status' && (
+            <div className="space-y-8">
+              <div className="mb-6">
+                <label className="block text-xl sm:text-2xl text-white mb-4">Enter Your Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full p-3 sm:p-4 rounded bg-navy text-white border border-gray-800 focus:border-cyan focus:outline-none text-sm sm:text-lg"
+                  placeholder="your@email.com"
+                />
+                <Button
+                  onClick={handleFetchSubmissions}
+                  variant="primary"
+                  className="w-full mt-6 py-2 sm:py-3 text-base sm:text-lg"
+                  disabled={loading || !email}
+                >
+                  {loading ? 'Fetching...' : 'Check Status'}
+                </Button>
+              </div>
+              {error && <p className="text-red-500 text-center text-sm sm:text-lg mb-4">{error}</p>}
+              {submissions.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-white min-w-[600px]">
+                    <thead>
+                      <tr className="bg-navy-dark">
+                        <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Task Name</th>
+                        <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Submission Date</th>
+                        <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Status</th>
+                        <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Image</th>
+                        <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Quiz Score</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {submissions.map((submission, index) => (
+                        <tr key={index} className="hover:bg-navy-light/50">
+                          <td className="p-3 sm:p-4 text-sm sm:text-base">{submission.event_name}</td>
+                          <td className="p-3 sm:p-4 text-sm sm:text-base">{new Date(submission.timestamp).toLocaleString()}</td>
+                          <td className="p-3 sm:p-4 text-sm sm:text-base">{submission.status}</td>
+                          <td className="p-3 sm:p-4 text-sm sm:text-base">
+                            {submission.image_url ? (
+                              <a href={submission.image_url} target="_blank" rel="noopener noreferrer" className="text-cyan underline">
+                                View Image
+                              </a>
+                            ) : 'No Image'}
+                          </td>
+                          <td className="p-3 sm:p-4 text-sm sm:text-base">
+                            {submission.quiz_score !== null ? `${submission.quiz_score}%` : 'N/A'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Task Details Popup */}
       <AnimatePresence>
         {selectedTask && (
           <motion.div
@@ -518,6 +675,7 @@ export function MembersPortal() {
         )}
       </AnimatePresence>
 
+      {/* Task Submission Popup */}
       <AnimatePresence>
         {submissionTask && (
           <motion.div
@@ -683,8 +841,9 @@ export function MembersPortal() {
                     <label className="block text-sm sm:text-lg text-white mb-2">What have you learnt from this task (100-200 words)</label>
                     <textarea
                       {...register('learnings', {
-                        required: 'Learnings is required',
+                        required: submissionTask.require_learnings ? 'Learnings is required' : false,
                         validate: (value) => {
+                          if (!submissionTask.require_learnings) return true;
                           const words = value.trim().split(/\s+/).filter(word => word.length > 0);
                           const wordCount = words.length;
                           return (wordCount >= 100 && wordCount <= 200) || 'Must be between 100 and 200 words';
@@ -701,10 +860,19 @@ export function MembersPortal() {
                   <div>
                     <label className="block text-sm sm:text-lg text-white mb-2">Document Link</label>
                     <input
-                      {...register('doc_links')}
+                      {...register('doc_links', {
+                        required: submissionTask.require_doc_links ? 'Document Link is required' : false,
+                        pattern: submissionTask.require_doc_links
+                          ? {
+                              value: /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/,
+                              message: 'Please enter a valid URL',
+                            }
+                          : undefined,
+                      })}
                       className="w-full p-2 sm:p-3 rounded bg-navy text-white border border-gray-800 focus:border-cyan text-sm sm:text-base"
                       placeholder="Enter document link (e.g., Google Drive URL)"
                     />
+                    {errors.doc_links && <p className="text-red-500 mt-1 text-xs sm:text-sm">{errors.doc_links.message}</p>}
                   </div>
                 )}
 
@@ -750,6 +918,7 @@ export function MembersPortal() {
         )}
       </AnimatePresence>
 
+      {/* Deadline Alert Popup */}
       <AnimatePresence>
         {deadlineCrossedTask && (
           <motion.div
@@ -789,6 +958,7 @@ export function MembersPortal() {
         )}
       </AnimatePresence>
 
+      {/* Quiz Popup */}
       <AnimatePresence>
         {quizTask && quizQuestions.length > 0 && (
           <motion.div
