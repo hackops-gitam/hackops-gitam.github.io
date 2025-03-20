@@ -3,21 +3,21 @@ export interface Event {
   title: string;
   description: string;
   date: string;
-  socialLink:string[];
-  additionalLinks: string[];
-  certificateLink: string;
-  detailsLink:string;
-  whatsappLink?:string;
-  type: 'workshop' | 'webinar' | 'competition';
-  status: 'upcoming' | 'ongoing' | 'past' | '#';
-  registrationStatus: 'started' | 'notStarted';
-  registrationLink?: string;
-  useCustomForm?: boolean;
+  status: 'ongoing' | 'upcoming' | 'past';
   image: string;
+  venue?: string;
+  timings?: string;
   participants: {
     current: number;
     total: number;
   };
+  registrationStatus: 'notStarted' | 'started' | 'closed';
+  certificateLink?: string;
+  additionalLinks?: { text: string; link: string }[];
+  socialLink?: { text: string; link: string }[];
+  eventImages?: string[];
+  whatsappLink?: string;
+  useCustomForm?: boolean;
 }
 export interface TeamMember{}
 

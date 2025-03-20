@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
+import { supabase } from '../supabaseClient'; // Import Supabase client
 
 interface FormData {
   name: string;
@@ -55,7 +56,7 @@ const programOptions: { [key: string]: string[] } = {
 };
 
 // Allowed email domains
-const allowedDomains = ['gitam.in', 'gitam.edu', 'student.gitam.edu', 'hackopsgitam.live','gmail.com'];
+const allowedDomains = ['gitam.in', 'gitam.edu', 'student.gitam.edu', 'hackopsgitam.live', 'gmail.com'];
 
 export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationFormProps) {
   const { register, handleSubmit, watch, control, formState: { errors, isSubmitting } } = useForm<FormData>({
@@ -63,6 +64,7 @@ export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationF
   });
   const [showTermsPopup, setShowTermsPopup] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
+  const [duplicateRegistration, setDuplicateRegistration] = useState(false); // New state for duplicate registration
   const [timer, setTimer] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -95,6 +97,24 @@ export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationF
     };
   }, [submissionStatus, whatsappLink]);
 
+  // Function to check for duplicate registration
+  const checkDuplicateRegistration = async (email: string, phone: string, registrationNumber: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('registrations')
+        .select('id')
+        .eq('event_id', eventId)
+        .or(`email.eq.${email},phone.eq.${phone},registration_number.eq.${registrationNumber}`);
+
+      if (error) throw error;
+
+      return data && data.length > 0; // Return true if a duplicate is found
+    } catch (error) {
+      console.error('Error checking duplicate registration:', error);
+      return false; // Assume no duplicate in case of error to avoid blocking submission
+    }
+  };
+
   const onFormSubmit = async (data: FormData) => {
     // Validate email domain
     const emailDomain = data.email.split('@')[1]?.toLowerCase();
@@ -103,6 +123,14 @@ export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationF
       return; // Prevent submission and popup if domain is invalid
     }
 
+    // Check for duplicate registration
+    const isDuplicate = await checkDuplicateRegistration(data.email, data.phone, data.registrationNumber);
+    if (isDuplicate) {
+      setDuplicateRegistration(true);
+      return; // Stop submission and show duplicate popup
+    }
+
+    // Proceed with registration if no duplicate
     try {
       const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cnhybHhyeHdxcHB6ZGFzd251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEwMTEzMzgsImV4cCI6MjA1NjU4NzMzOH0.H7NH1KAugyrUi0QHWfXTe6C4P9vXzH-ZOYDnwGJRo0A';
       const functionUrl = 'https://lyrxrlxrxwqppzdaswnu.functions.supabase.co/register';
@@ -285,6 +313,36 @@ export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationF
         </div>
       )}
 
+      {/* Duplicate Registration Popup */}
+      {duplicateRegistration && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <Card className="p-6 max-w-md text-center">
+            <p className="text-red-500 text-lg mb-4">
+              You have already registered to this event.
+            </p>
+            <p className="text-white mb-4">
+              For any queries, please join the WhatsApp group with the button below.
+            </p>
+            {whatsappLink && (
+              <Button
+                href={whatsappLink}
+                target="_blank"
+                className="mt-4 mb-4 w-full sm:w-auto px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300"
+                onClick={() => setDuplicateRegistration(false)}
+              >
+                Join WhatsApp Group
+              </Button>
+            )}
+            <Button
+              onClick={() => setDuplicateRegistration(false)}
+              className="mt-2 w-full sm:w-auto px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition duration-300"
+            >
+              Close
+            </Button>
+          </Card>
+        </div>
+      )}
+
       {/* Submission Feedback */}
       {submissionStatus === 'success' && whatsappLink && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
@@ -317,7 +375,7 @@ export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationF
           </Card>
         </div>
       )}
-      {submissionStatus === 'error' && (
+      {submissionStatus === 'error' && !duplicateRegistration && (
         <div className="mt-4 text-red-500">
           Registration failed. Please use an email from gitam.in, gitam.edu, student.gitam.edu, or hackopsgitam.live.
         </div>

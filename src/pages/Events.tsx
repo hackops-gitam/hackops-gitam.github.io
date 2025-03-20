@@ -3,6 +3,7 @@ import { events } from '../data/events';
 import { EventSlider } from '../components/EventSlider';
 
 export default function Events() {
+  // Filter events based on status
   const ongoingEvents = events.filter((event) => event.status === 'ongoing');
   const upcomingEvents = events.filter((event) => event.status === 'upcoming');
   const pastEvents = events.filter((event) => event.status === 'past');

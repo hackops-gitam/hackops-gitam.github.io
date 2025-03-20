@@ -3,8 +3,9 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Calendar, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../supabaseClient'; // Adjust the path if needed
 
 interface EventCardProps {
   event: Event;
@@ -12,6 +13,50 @@ interface EventCardProps {
 
 export function EventCard({ event }: EventCardProps) {
   const [popupVisible, setPopupVisible] = useState(false);
+  const [currentParticipants, setCurrentParticipants] = useState(event.participants.current);
+
+  // Fetch the number of registrations for this event
+  const fetchRegistrations = async () => {
+    const { count, error } = await supabase
+      .from('registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_id', event.id.toString()); // Ensure event.id is a string
+
+    if (error) {
+      console.error('Error fetching registrations for event', event.id, ':', error);
+      return;
+    }
+
+    setCurrentParticipants(count || 0);
+  };
+
+  // Set up real-time subscription for new registrations
+  useEffect(() => {
+    // Initial fetch
+    fetchRegistrations();
+
+    // Subscribe to new registrations
+    const subscription = supabase
+      .channel(`registrations-event-${event.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'registrations',
+          filter: `event_id=eq.${event.id.toString()}`,
+        },
+        () => {
+          fetchRegistrations(); // Re-fetch on new registration
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [event.id]);
 
   // Format date to a readable format
   const formatDate = (dateString: string) => {
@@ -22,8 +67,7 @@ export function EventCard({ event }: EventCardProps) {
     });
   };
 
-  const participantPercentage =
-    (event.participants.current / event.participants.total) * 100;
+  const participantPercentage = (currentParticipants / event.participants.total) * 100;
 
   // Handle "Register" button click: Show popup only if event is not past and registration hasn't started
   const handleRegisterClick = (e: React.MouseEvent) => {
@@ -62,7 +106,7 @@ export function EventCard({ event }: EventCardProps) {
           <div className="flex items-center gap-2 mb-1">
             <Users size={16} className="text-cyan" />
             <span className="text-sm text-gray-400">
-              {event.participants.current}/{event.participants.total} Participants
+              {currentParticipants}/{event.participants.total} Participants
             </span>
           </div>
           <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">

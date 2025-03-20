@@ -1,4 +1,3 @@
-// src/pages/AdminEvents.tsx
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Card } from '../components/ui/Card';
@@ -10,6 +9,7 @@ export function AdminEvents() {
   const [filterDate, setFilterDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -27,6 +27,30 @@ export function AdminEvents() {
     };
     fetchData();
   }, []);
+
+  // Function to delete a registration
+  const handleDelete = async (registrationId: string) => {
+    // Show confirmation prompt
+    const confirmDelete = window.confirm('Are you sure you want to delete this registration?');
+    if (!confirmDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('registrations')
+        .delete()
+        .eq('id', registrationId);
+
+      if (error) throw error;
+
+      // Update local state to remove the deleted registration
+      setData((prevData) => prevData.filter((item) => item.id !== registrationId));
+      setSuccessMessage('Registration deleted successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000); // Clear message after 3 seconds
+    } catch (err) {
+      setError(err.message || 'Failed to delete registration');
+      setTimeout(() => setError(null), 3000); // Clear error after 3 seconds
+    }
+  };
 
   // Extract unique event_ids and dates for filters
   const eventIds = [...new Set(data.map((item) => item.event_id))];
@@ -46,6 +70,13 @@ export function AdminEvents() {
     <div className="p-4 sm:p-6">
       <Card className="p-4 sm:p-6 bg-navy-light border-2 border-cyan rounded-lg">
         <h2 className="text-2xl sm:text-3xl font-bold text-cyan text-center mb-4 sm:mb-6">Admin Events Data</h2>
+
+        {/* Success Message */}
+        {successMessage && (
+          <div className="text-green-500 text-center mb-4">{successMessage}</div>
+        )}
+
+        {/* Filters */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0 sm:space-x-4">
           <select
             value={filterEventId}
@@ -68,6 +99,8 @@ export function AdminEvents() {
             ))}
           </select>
         </div>
+
+        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-white min-w-[600px]">
             <thead>
@@ -81,6 +114,7 @@ export function AdminEvents() {
                 <th className="border p-2 sm:p-3 text-left">Program</th>
                 <th className="border p-2 sm:p-3 text-left">Registration Number</th>
                 <th className="border p-2 sm:p-3 text-left">Timestamp</th>
+                <th className="border p-2 sm:p-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -95,12 +129,23 @@ export function AdminEvents() {
                   <td className="border p-2 sm:p-3">{row.program}</td>
                   <td className="border p-2 sm:p-3">{row.registration_number}</td>
                   <td className="border p-2 sm:p-3">{new Date(row.timestamp).toLocaleString()}</td>
+                  <td className="border p-2 sm:p-3">
+                    <Button
+                      variant="secondary"
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                      onClick={() => handleDelete(row.id)}
+                    >
+                      Delete
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
           {filteredData.length === 0 && <p className="text-white text-center mt-4">No data available</p>}
         </div>
+
+        {/* Export to CSV Button */}
         <Button
           className="mt-4 sm:mt-6 w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300 text-sm sm:text-base"
           onClick={() => {

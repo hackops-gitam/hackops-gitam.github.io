@@ -9,6 +9,7 @@ export default function Home() {
     threshold: 0.1,
   });
 
+  // Filter events based on status
   const ongoingEvents = events.filter(event => event.status === 'ongoing');
   const upcomingEvents = events.filter(event => event.status === 'upcoming');
 
