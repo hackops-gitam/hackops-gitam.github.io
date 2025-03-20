@@ -36,12 +36,14 @@ export function EventCard({ event }: EventCardProps) {
   return (
     <motion.div whileHover={{ y: -5 }} transition={{ duration: 0.2 }}>
       <Card className="h-full">
-        {/* Event Image */}
-        <img
-          src={event.image}
-          alt={event.title}
-          className="w-full h-48 object-cover rounded-md mb-4"
-        />
+        {/* Event Image with 4:5 aspect ratio */}
+        <div className="relative w-full aspect-[4/5] mb-4">
+          <img
+            src={event.image}
+            alt={event.title}
+            className="absolute inset-0 w-full h-full object-cover rounded-md"
+          />
+        </div>
 
         {/* Event Date */}
         <div className="flex items-center gap-2 text-cyan mb-2">
@@ -53,7 +55,7 @@ export function EventCard({ event }: EventCardProps) {
         <h3 className="text-xl font-bold mb-2">{event.title}</h3>
 
         {/* Event Description */}
-        <p className="text-gray-400 mb-4">{event.description}</p>
+        <p className="text-gray-400 mb-4 line-clamp-3">{event.description}</p>
 
         {/* Participants */}
         <div className="mb-4">

@@ -67,20 +67,20 @@ export const events: Event[] = [
     id: 'Wifi Hacking',
     title: 'Wifi Hacking 101',
     description: 'Expert-led session on securing wifi networks.',
-    date: 'Upcoming',
+    date: '2026-03-27',
     type: 'workshop',
     whatsappLink:'https://chat.whatsapp.com/G9RNGrXFIqC4nfhniKNr8f',
     eventImages:[],
     status: 'upcoming',
     certificateLink:"#",
-    registrationStatus: 'notStarted',
+    registrationStatus: 'started',
     useCustomForm:true,
     registrationLink: 'https://forms.example.com/network-security-webinar',
-    detailsLink: '#s',
-    image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1741174260/WIFI_amnblc.png',
+    detailsLink: '#',
+    image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1742497165/WIFI_1_mlzley.png',
     participants: {
       current: 0,
-      total: 60
+      total: 65
     }
   }
 ];
