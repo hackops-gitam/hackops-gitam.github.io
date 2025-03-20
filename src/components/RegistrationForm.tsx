@@ -55,7 +55,7 @@ const programOptions: { [key: string]: string[] } = {
 };
 
 // Allowed email domains
-const allowedDomains = ['gitam.in', 'gitam.edu', 'student.gitam.edu', 'hackopsgitam.live'];
+const allowedDomains = ['gitam.in', 'gitam.edu', 'student.gitam.edu', 'hackopsgitam.live','gmail.com'];
 
 export function RegistrationForm({ eventId, title, whatsappLink }: RegistrationFormProps) {
   const { register, handleSubmit, watch, control, formState: { errors, isSubmitting } } = useForm<FormData>({
