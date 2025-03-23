@@ -46,7 +46,7 @@ export const events: Event[] = [
     title: 'Recruitments AY 2025-26',
     description: 'Join the revolution where hacking meets honor! We are on the hunt for passionate, driven individuals ready to lead, learn, and dominate the world of cybersecurity. Dont miss the chance to be part of GITAMs premier tech club. Apply now and unleash your potential!',
     date: '2025-01-01',
-    type: 'workshop',
+    type: 'Workshop',
     status: 'past',
     registrationStatus: 'started',
     certificateLink: "hackopsgitam.live",
