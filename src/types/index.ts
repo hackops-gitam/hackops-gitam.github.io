@@ -20,7 +20,20 @@ export interface Event {
   whatsappLink?: string;
   useCustomForm?: boolean;
 }
-export interface TeamMember{}
+export interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  image: string;
+  term: string; // Add term field
+  socials: {
+    linkedin?: string;
+    github?: string;
+    twitter?: string;
+    Instagram?: string;
+    Mail?: string;
+  };
+}
 
 // types.ts
 export interface CTFEvent {
