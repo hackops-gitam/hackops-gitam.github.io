@@ -55,12 +55,12 @@ export const teamMembers: TeamMember[] = [
   },
   {
     id: '6',
-    name: 'Varshith Chitla',
+    name: 'Varshith Chatla',
     role: 'ER/PR Manager',
     image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1740656931/crp_v_kv2z6y.jpg',
     term: '2024-2025', // Previous term
     socials: {
-      linkedin: '',
+      linkedin: 'https://www.linkedin.com/in/varshith-chatla-934162320/',
       github: '',
       twitter: '',
       Mail:'externalrelations@leads.hackopsgitam.live'
@@ -86,7 +86,7 @@ export const teamMembers: TeamMember[] = [
     image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1736266438/neha2_yolz9j.jpg',
     term: '2024-2025', // Previous term
     socials: {
-      linkedin: 'https://linkedin.com/neha-bommisetty-b3640728a',
+      linkedin: 'https://www.linkedin.com/in/neha-bommisetty-b3640728a/',
       github: '',
       twitter: '',
       Mail:'marketing@hackopsgitam.live',
