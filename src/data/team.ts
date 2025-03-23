@@ -52,7 +52,7 @@ export const teamMembers: TeamMember[] = [
   },
   {
     id: '6',
-    name: 'ER/PR Manager',
+    name: 'Varshith Chitla',
     role: 'ER/PR Manager',
     image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1740656931/crp_v_kv2z6y.jpg',
     term: '2024-2025', // Previous term
@@ -64,7 +64,7 @@ export const teamMembers: TeamMember[] = [
   },
   {
     id: '8',
-    name: 'Design Lead',
+    name: 'Dimpul Pasumarthy',
     role: 'Design Lead',
     image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1734463267/WhatsApp_Image_2024-12-18_at_12.50.16_AM_doy6qy.jpg',
     term: '2024-2025', // Previous term
@@ -89,7 +89,7 @@ export const teamMembers: TeamMember[] = [
   },
   {
     id: '11',
-    name: 'Treasurer',
+    name: 'Sanjana Kusetty',
     role: 'Treasurer',
     image: 'https://doeresults.gitam.edu/photo/img.aspx?id=2024003990',
     term: '2024-2025', // Older term
