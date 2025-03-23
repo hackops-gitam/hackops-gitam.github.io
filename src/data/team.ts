@@ -24,6 +24,7 @@ export const teamMembers: TeamMember[] = [
     socials: {
       linkedin: 'https://linkedin.com/srinivas-atta',
       twitter: 'https://twitter.com',
+      Mail:'mailto:secretary@hackopsgitam.live',
     },
   },
   {
@@ -33,9 +34,10 @@ export const teamMembers: TeamMember[] = [
     image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1734460821/1721794789547_a2qckh.png',
     term: '2024-2025', // Current term
     socials: {
-      linkedin: '',
-      github: '',
+      linkedin: 'https://linkedin.com/in/datla-rishith-varma-6bb73a268',
+      github: 'https://github.com/rishith-varma',
       twitter: '',
+      Mail:'mailto:techlead@hackopsgitam.live'
     },
   },
   {
@@ -45,9 +47,10 @@ export const teamMembers: TeamMember[] = [
     image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1734460998/FB_IMG_1713635409535_misbov.jpg',
     term: '2024-2025', // Current term
     socials: {
-      linkedin: '',
+      linkedin: 'https://linkedin.com/in/kaushikyerramsetty',
       github: '',
       twitter: '',
+      Mail:'mailto:nontechlead@hackopsgitam.live'
     },
   },
   {
@@ -60,6 +63,7 @@ export const teamMembers: TeamMember[] = [
       linkedin: '',
       github: '',
       twitter: '',
+      Mail:'externalrelations@leads.hackopsgitam.live'
     },
   },
   {
@@ -69,10 +73,10 @@ export const teamMembers: TeamMember[] = [
     image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1734463267/WhatsApp_Image_2024-12-18_at_12.50.16_AM_doy6qy.jpg',
     term: '2024-2025', // Previous term
     socials: {
-      linkedin: '#',
+      linkedin: 'https://linkedin.com/in/dimpul-pasumarthy-931b92315',
       github: '#',
       twitter: '',
-      Instagram: '#',
+      Mail: 'design@leads.hackopsgitam.live',
     },
   },
   {
@@ -82,9 +86,10 @@ export const teamMembers: TeamMember[] = [
     image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1736266438/neha2_yolz9j.jpg',
     term: '2024-2025', // Previous term
     socials: {
-      linkedin: '',
+      linkedin: 'https://linkedin.com/neha-bommisetty-b3640728a',
       github: '',
       twitter: '',
+      Mail:'marketing@hackopsgitam.live',
     },
   },
   {
@@ -97,6 +102,7 @@ export const teamMembers: TeamMember[] = [
       linkedin: '',
       github: '',
       twitter: '',
+      Mail:'treasurer@leads.hackopsgitam.live'
     },
   },
 ];
