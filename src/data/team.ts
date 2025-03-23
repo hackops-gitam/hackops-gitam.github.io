@@ -7,7 +7,7 @@ export const teamMembers: TeamMember[] = [
     id: '1',
     name: 'Satvik Vemulapalli',
     role: 'President',
-    image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1734461002/profile_jzb0ks.jpg',
+    image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1734461002/profile_jzb0ks',
     socials: {
       linkedin: 'https://linkedin.com/in/satvik-vemulapalli',
       github: 'https://github.com/satvikblog',
