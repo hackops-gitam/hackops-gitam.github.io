@@ -5,7 +5,7 @@ import { Calendar, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../supabaseClient'; // Adjust the path if needed
+import { supabase } from '../supabaseClient';
 
 interface EventCardProps {
   event: Event;
@@ -20,18 +20,25 @@ export function EventCard({ event }: EventCardProps) {
     const { count, error } = await supabase
       .from('registrations')
       .select('*', { count: 'exact', head: true })
-      .eq('event_id', event.id.toString()); // Ensure event.id is a string
+      .eq('event_id', event.id.toString());
 
     if (error) {
       console.error('Error fetching registrations for event', event.id, ':', error);
+      setCurrentParticipants(event.participants.current); // Fallback to static value on error
       return;
     }
 
     setCurrentParticipants(count || 0);
   };
 
-  // Set up real-time subscription for new registrations
+  // Set up real-time subscription and initial fetch if FetchFromDB is true
   useEffect(() => {
+    // If FetchFromDB is false or undefined, use the static value
+    if (!event.FetchFromDB) {
+      setCurrentParticipants(event.participants.current);
+      return;
+    }
+
     // Initial fetch
     fetchRegistrations();
 
@@ -56,7 +63,7 @@ export function EventCard({ event }: EventCardProps) {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [event.id]);
+  }, [event.id, event.FetchFromDB, event.participants.current]);
 
   // Format date to a readable format
   const formatDate = (dateString: string) => {

@@ -55,9 +55,10 @@ interface RegisteredUser {
 }
 
 export function MembersPortal() {
-  const [activeTab, setActiveTab] = useState<'submissions' | 'status'>('submissions');
+  const [activeTab, setActiveTab] = useState<'submissions' | 'status' | 'verified-members'>('submissions');
   const [email, setEmail] = useState('');
   const [submissions, setSubmissions] = useState<any[]>([]);
+  const [verifiedMembers, setVerifiedMembers] = useState<RegisteredUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -80,7 +81,7 @@ export function MembersPortal() {
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const navigate = useNavigate();
 
-  const { register, handleSubmit, watch, control, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, watch, control, reset, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     defaultValues: { event_name: '', batch: '', learnings: '', doc_links: '' },
   });
 
@@ -105,8 +106,22 @@ export function MembersPortal() {
       }
     };
 
+    const fetchVerifiedMembers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('registered_users')
+          .select('email, name')
+          .order('name', { ascending: true });
+        if (error) throw error;
+        setVerifiedMembers(data || []);
+      } catch (err) {
+        setError(err.message || 'Failed to fetch verified members.');
+      }
+    };
+
     if (isAuthenticated) {
       fetchTasks();
+      fetchVerifiedMembers();
     }
   }, [isAuthenticated]);
 
@@ -115,7 +130,7 @@ export function MembersPortal() {
     const submitTaskId = searchParams.get('submitTaskId');
 
     if (tab) {
-      setActiveTab(tab as 'submissions' | 'status');
+      setActiveTab(tab as 'submissions' | 'status' | 'verified-members');
     }
 
     if (submitTaskId && tasks.length > 0) {
@@ -181,6 +196,22 @@ export function MembersPortal() {
     }
   };
 
+  const checkDuplicateSubmission = async (email: string, registrationNumber: string, taskName: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('task_submissions')
+        .select('id')
+        .eq('email', email.toLowerCase().trim())
+        .eq('registration_number', registrationNumber.toUpperCase().trim())
+        .eq('event_name', taskName)
+        .limit(1);
+      if (error) throw error;
+      return data && data.length > 0;
+    } catch (err) {
+      throw new Error('Failed to check for duplicate submission: ' + err.message);
+    }
+  };
+
   const onFormSubmit = async (data: FormData) => {
     setSubmissionError(null);
     if (!submissionTask) {
@@ -197,6 +228,18 @@ export function MembersPortal() {
     }
 
     try {
+      // Check for duplicate submission
+      const isDuplicate = await checkDuplicateSubmission(
+        data.email,
+        data.registration_number,
+        submissionTask.task_name
+      );
+      if (isDuplicate) {
+        setSubmissionError('You have already submitted this task with the provided email and registration number.');
+        setSubmissionStatus('error');
+        return;
+      }
+
       const file = data.image[0];
       let imageUrl = null;
       if (file) {
@@ -215,12 +258,12 @@ export function MembersPortal() {
       const { error: dbError } = await supabase.from('task_submissions').insert({
         event_name: submissionTask.task_name,
         name: data.name,
-        email: data.email,
+        email: data.email.toLowerCase().trim(),
         phone: data.phone,
         year: data.year,
         discipline: data.discipline,
         program: data.program,
-        registration_number: data.registration_number,
+        registration_number: data.registration_number.toUpperCase().trim(),
         timestamp: new Date().toISOString(),
         batch: data.batch,
         image_url: imageUrl,
@@ -254,18 +297,11 @@ export function MembersPortal() {
         return;
       }
 
-      const { data: submissions, error: submissionError } = await supabase
-        .from('task_submissions')
-        .select('email')
-        .eq('email', data.email.toLowerCase().trim())
-        .limit(1);
-      if (submissionError) throw submissionError;
-      if (!submissions || submissions.length === 0) {
-        setAuthError('No submissions found for this email. Please submit a task first.');
-        return;
-      }
-
       setUserName(user.name);
+      setEmail(user.email);
+      // Pre-fill form fields with authenticated user data
+      setValue('email', user.email);
+      setValue('name', user.name);
       setIsAuthenticated(true);
       setShowWelcomePopup(true);
     } catch (err) {
@@ -490,6 +526,13 @@ export function MembersPortal() {
             >
               Submission Status
             </Button>
+            <Button
+              variant={activeTab === 'verified-members' ? 'primary' : 'secondary'}
+              onClick={() => setActiveTab('verified-members')}
+              className="px-6 py-3 text-lg sm:text-xl"
+            >
+              Verified Members
+            </Button>
           </div>
 
           {activeTab === 'submissions' && (
@@ -622,6 +665,34 @@ export function MembersPortal() {
                     </tbody>
                   </table>
                 </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'verified-members' && (
+            <div className="space-y-8">
+              <h3 className="text-2xl sm:text-3xl font-semibold text-cyan text-center mb-6">Verified Members</h3>
+              {verifiedMembers.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-white min-w-[600px]">
+                    <thead>
+                      <tr className="bg-navy-dark">
+                        <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Name</th>
+                        <th className="p-3 sm:p-4 text-left text-sm sm:text-lg">Email</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {verifiedMembers.map((member, index) => (
+                        <tr key={index} className="hover:bg-navy-light/50">
+                          <td className="p-3 sm:p-4 text-sm sm:text-base">{member.name}</td>
+                          <td className="p-3 sm:p-4 text-sm sm:text-base">{member.email}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-center text-lg mt-6">No verified members found.</p>
               )}
             </div>
           )}

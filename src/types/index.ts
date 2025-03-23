@@ -7,6 +7,7 @@ export interface Event {
   image: string;
   venue?: string;
   timings?: string;
+  FetchFromDB?: boolean;
   participants: {
     current: number;
     total: number;

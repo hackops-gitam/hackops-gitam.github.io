@@ -2,14 +2,14 @@ import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { events } from '../data/events';
 import { RegistrationForm } from '../components/RegistrationForm';
-import { supabase } from '../supabaseClient'; // Adjust the path if needed
+import { supabase } from '../supabaseClient';
 
 const EventDetails = () => {
   const { id } = useParams<{ id: string }>();
   const [event, setEvent] = useState<any>(null);
   const [currentParticipants, setCurrentParticipants] = useState(0);
 
-  // Fetch event details and initial registration count
+  // Fetch event details and set initial participant count
   useEffect(() => {
     const foundEvent = events.find((event) => event.id === id);
     if (foundEvent) {
@@ -29,15 +29,22 @@ const EventDetails = () => {
 
     if (error) {
       console.error('Error fetching registrations for event', id, ':', error);
+      setCurrentParticipants(event?.participants.current || 0); // Fallback to static value
       return;
     }
 
     setCurrentParticipants(count || 0);
   };
 
-  // Set up real-time subscription and initial fetch
+  // Set up real-time subscription and initial fetch if FetchFromDB is true
   useEffect(() => {
-    if (!id) return;
+    if (!id || !event) return;
+
+    // If FetchFromDB is false or undefined, use the static value
+    if (!event.FetchFromDB) {
+      setCurrentParticipants(event.participants.current);
+      return;
+    }
 
     // Initial fetch
     fetchRegistrations();
@@ -63,7 +70,7 @@ const EventDetails = () => {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [id]);
+  }, [id, event]);
 
   // Regex for validating social media link (basic URL validation)
   const isValidUrl = (url: string) => {
