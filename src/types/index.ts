@@ -49,3 +49,47 @@ export interface CTFEvent {
   weight: number;
   location: string;
 }
+
+interface TechTeamMember {
+  id: string;
+  name: string;
+  email: string;
+  registrationNumber: string;
+  photo: string | null;
+  tryHackMe: {
+    rank: number;
+    completedRooms: number;
+    achievements: string[];
+    profileLink: string;
+  };
+  certifications: string[];
+  bio: string;
+  batchAndBranch: string;
+  testimonial: string;
+  skills: string[];
+  socials: {
+    email?: string;
+    github?: string;
+    twitter?: string;
+    blog?: string;
+  };
+  taskScore: number;
+  quizScore: number;
+  taskSubmissionRate: number;
+  quizCompletionRate: number;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  image: string;
+  term: string;
+  socials: {
+    linkedin?: string;
+    github?: string;
+    twitter?: string;
+    Instagram?: string;
+    Mail?: string;
+  };
+}

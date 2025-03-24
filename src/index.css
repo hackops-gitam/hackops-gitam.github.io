@@ -95,3 +95,13 @@ h1::after, h2::after, h3::after {
   object-fit: cover;
   border-radius: 12px;
 }
+
+/* Glassmorphic Utility */
+@layer utilities {
+  .glassmorphic-card {
+    @apply bg-navy-light/50 backdrop-blur-xs border border-white/10 shadow-2xl;
+  }
+  .glassmorphic-card-inner {
+    @apply bg-navy/70 backdrop-blur-xs;
+  }
+}

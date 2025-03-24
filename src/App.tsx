@@ -7,6 +7,7 @@ import CTFs from './pages/CTFs';
 import Team from './pages/Team';
 import Contact from './pages/Contact';
 import EventDetails from './pages/EventDetails';
+import TechTeamAchievements from './pages/TechTeamAchievements'; // Import the new page
 import { AdminLogin } from './components/AdminLogin';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { MembersPortal } from './pages/MembersPortal';
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/members-portal" element={<MembersPortal />} />
             <Route path="/event/:id" element={<EventDetails />} />
             <Route path="/task-details/:taskId" element={<TaskDetails />} />
+            <Route path="/tech-team-achievements" element={<TechTeamAchievements />} /> {/* New route */}
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
