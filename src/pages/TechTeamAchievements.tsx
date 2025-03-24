@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { FaTrophy, FaMedal, FaStar, FaShieldAlt, FaCode, FaLock, FaQuestionCircle, FaInfoCircle, FaSyncAlt } from 'react-icons/fa';
+import { FaTrophy, FaMedal, FaStar, FaShieldAlt, FaCode, FaLock, FaQuestionCircle, FaInfoCircle, FaSyncAlt, FaTimes } from 'react-icons/fa';
 import { GiHoodedFigure } from 'react-icons/gi';
-import { supabase } from '../supabaseClient'; // Adjust the path to your Supabase client
+import { supabase } from '../supabaseClient';
 
 // Define animation variants
 const glitchVariants: Variants = {
@@ -54,6 +54,49 @@ const neonPulseVariants: Variants = {
   },
 };
 
+// Reusable CloseButton component
+const CloseButton = ({ onClose }) => {
+  const buttonRef = useRef(null);
+
+  const handleRipple = (e) => {
+    const button = buttonRef.current;
+    const ripple = document.createElement('span');
+    const diameter = Math.max(button.clientWidth, button.clientHeight);
+    const radius = diameter / 2;
+
+    ripple.style.width = ripple.style.height = `${diameter}px`;
+    ripple.style.left = `${e.clientX - button.getBoundingClientRect().left - radius}px`;
+    ripple.style.top = `${e.clientY - button.getBoundingClientRect().top - radius}px`;
+    ripple.classList.add('ripple');
+
+    const existingRipple = button.getElementsByClassName('ripple')[0];
+    if (existingRipple) existingRipple.remove();
+
+    button.appendChild(ripple);
+  };
+
+  return (
+    <motion.button
+      ref={buttonRef}
+      onClick={(e) => {
+        handleRipple(e);
+        onClose();
+      }}
+      onTouchStart={(e) => {
+        e.preventDefault();
+        handleRipple(e);
+        onClose();
+      }}
+      className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 rounded-full bg-theme-bg/50 hover:bg-theme-error/20 text-theme-error hover:text-theme-error/70 focus:outline-none focus:ring-2 focus:ring-theme-primary transition-all duration-200 z-50 overflow-hidden"
+      whileHover={{ scale: 1.2 }}
+      whileTap={{ scale: 0.9 }}
+      aria-label="Close popup"
+    >
+      <FaTimes className="w-6 h-6 sm:w-8 sm:h-8 relative z-10" />
+    </motion.button>
+  );
+};
+
 // Define the TechTeamMember interface
 interface TechTeamMember {
   id: string;
@@ -91,6 +134,20 @@ export default function TechTeamAchievements() {
   const [earliestSubmitters, setEarliestSubmitters] = useState<{ [eventName: string]: { userName: string; timestamp: string } }>({});
 
   const DEFAULT_PHOTO = 'https://placehold.co/128x128?text=Access+Denied';
+
+  // Add keyboard support for closing popups
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (showRulesPopup) setShowRulesPopup(false);
+        if (showScoreBreakdown) setShowScoreBreakdown(null);
+        if (selectedMember) setSelectedMember(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showRulesPopup, showScoreBreakdown, selectedMember]);
 
   const fetchMembers = useCallback(async () => {
     setIsRefreshing(true);
@@ -717,6 +774,8 @@ export default function TechTeamAchievements() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
+            onClick={() => setShowRulesPopup(false)}
+            onTouchMove={(e) => e.stopPropagation()}
           >
             <motion.div
               className="glassmorphic-card p-4 sm:p-6 md:p-8 rounded-2xl border border-theme-primary/50 shadow-theme-primary w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl max-h-[90vh] overflow-y-auto relative bg-navy/90"
@@ -724,15 +783,9 @@ export default function TechTeamAchievements() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ duration: 0.5 }}
+              onClick={(e) => e.stopPropagation()}
             >
-              <motion.button
-                onClick={() => setShowRulesPopup(false)}
-                className="absolute top-4 right-4 text-theme-error hover:text-theme-error/70 font-mono text-lg sm:text-xl"
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                [X]
-              </motion.button>
+              <CloseButton onClose={() => setShowRulesPopup(false)} />
               <div className="text-center mb-6">
                 <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme-primary font-mono">[SCORING RULES]</h3>
                 <p className="text-theme-text/70 text-xs sm:text-sm mt-2 font-sans">Understand how your score is calculated</p>
@@ -797,6 +850,8 @@ export default function TechTeamAchievements() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
+            onClick={() => setShowScoreBreakdown(null)}
+            onTouchMove={(e) => e.stopPropagation()}
           >
             <motion.div
               className="glassmorphic-card p-4 sm:p-6 md:p-8 rounded-2xl border border-theme-primary/50 shadow-theme-primary w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl max-h-[90vh] overflow-y-auto relative bg-navy/90"
@@ -804,15 +859,9 @@ export default function TechTeamAchievements() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ duration: 0.5 }}
+              onClick={(e) => e.stopPropagation()}
             >
-              <motion.button
-                onClick={() => setShowScoreBreakdown(null)}
-                className="absolute top-4 right-4 text-theme-error hover:text-theme-error/70 font-mono text-lg sm:text-xl"
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                [X]
-              </motion.button>
+              <CloseButton onClose={() => setShowScoreBreakdown(null)} />
               <div className="text-center mb-6">
                 <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme-primary font-mono">[SCORE BREAKDOWN]</h3>
                 <p className="text-theme-text/70 text-xs sm:text-sm mt-2 font-sans">For {showScoreBreakdown.name}</p>
@@ -921,6 +970,8 @@ export default function TechTeamAchievements() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
+            onClick={() => setSelectedMember(null)}
+            onTouchMove={(e) => e.stopPropagation()}
           >
             <motion.div
               className="glassmorphic-card p-4 sm:p-6 md:p-8 rounded-2xl border border-theme-primary/50 shadow-theme-primary w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl max-h-[90vh] overflow-y-auto relative bg-navy/90"
@@ -928,15 +979,9 @@ export default function TechTeamAchievements() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ duration: 0.5 }}
+              onClick={(e) => e.stopPropagation()}
             >
-              <motion.button
-                onClick={() => setSelectedMember(null)}
-                className="absolute top-4 right-4 text-theme-error hover:text-theme-error/70 font-mono text-lg sm:text-xl"
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                [X]
-              </motion.button>
+              <CloseButton onClose={() => setSelectedMember(null)} />
               <div className="text-center">
                 <motion.img
                   src={selectedMember.photo || DEFAULT_PHOTO}
