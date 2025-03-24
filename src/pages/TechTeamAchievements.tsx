@@ -1,33 +1,73 @@
-import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../supabaseClient';
-import { FaTrophy, FaMedal, FaStar, FaCode, FaTerminal, FaLock, FaShieldAlt, FaSyncAlt, FaInfoCircle, FaQuestionCircle } from 'react-icons/fa';
-import { GiCyberEye, GiHoodedFigure } from 'react-icons/gi';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { FaTrophy, FaMedal, FaStar, FaShieldAlt, FaCode, FaLock, FaQuestionCircle, FaInfoCircle, FaSyncAlt } from 'react-icons/fa';
+import { GiHoodedFigure } from 'react-icons/gi';
+import { supabase } from '../supabaseClient'; // Adjust the path to your Supabase client
+
+// Define animation variants
+const glitchVariants: Variants = {
+  initial: { opacity: 0 },
+  animate: {
+    opacity: 1,
+    transition: {
+      duration: 0.5,
+      repeat: Infinity,
+      repeatType: 'reverse' as const,
+    },
+  },
+};
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.2,
+    },
+  },
+};
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 50 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+  hover: { scale: 1.02, transition: { duration: 0.3 } },
+};
+
+const holographicVariants: Variants = {
+  hover: {
+    background: 'linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1))',
+    transition: { duration: 0.5 },
+  },
+};
+
+const neonPulseVariants: Variants = {
+  pulse: {
+    textShadow: [
+      '0 0 5px #00f, 0 0 10px #00f, 0 0 20px #00f',
+      '0 0 10px #00f, 0 0 20px #00f, 0 0 40px #00f',
+    ],
+    transition: {
+      duration: 1,
+      repeat: Infinity,
+      repeatType: 'reverse' as const,
+    },
+  },
+};
 
 // Define the TechTeamMember interface
 interface TechTeamMember {
   id: string;
   name: string;
   email: string;
-  registrationNumber: string | null;
-  photo: string | null;
-  tryHackMe: {
-    rank: number;
-    completedRooms: number;
-    achievements: string[];
-    profileLink: string;
-  };
+  registrationNumber: string;
+  photo: string;
+  tryHackMe: { rank: number; completedRooms: number; achievements: string[]; profileLink: string };
   certifications: string[];
   bio: string;
   batchAndBranch: string;
   testimonial: string;
   skills: string[];
-  socials: {
-    email?: string;
-    github?: string;
-    twitter?: string;
-    blog?: string;
-  };
+  socials: { [key: string]: string };
   totalScore: number;
   quizRate: number;
   taskRate: number;
@@ -39,102 +79,6 @@ interface TechTeamMember {
   timingPenalty: number;
   latePenalty: number;
 }
-
-// Animation variants for the container
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.3,
-      delayChildren: 0.5,
-    },
-  },
-};
-
-// Animation variants for each card
-const cardVariants = {
-  hidden: { opacity: 0, y: 50, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      duration: 0.6,
-      ease: 'easeOut',
-    },
-  },
-  hover: {
-    scale: 1.03,
-    boxShadow: '0 0 20px rgba(100, 255, 218, 0.5)',
-    transition: {
-      duration: 0.3,
-    },
-  },
-};
-
-// Glitch animation for text
-const glitchVariants = {
-  initial: { opacity: 0 },
-  animate: {
-    opacity: 1,
-    textShadow: [
-      '0 0 10px rgba(100, 255, 218, 0.8)',
-      '2px 2px 10px rgba(255, 0, 255, 0.5), -2px -2px 10px rgba(100, 255, 218, 0.5)',
-      '0 0 10px rgba(100, 255, 218, 0.8)',
-    ],
-    transition: {
-      duration: 0.1,
-      repeat: Infinity,
-      repeatType: 'mirror' as const,
-      ease: 'linear',
-    },
-  },
-};
-
-// Neon pulse animation for top scores
-const neonPulseVariants = {
-  pulse: {
-    boxShadow: [
-      '0 0 5px rgba(100, 255, 218, 0.3), 0 0 10px rgba(100, 255, 218, 0.3)',
-      '0 0 20px rgba(100, 255, 218, 0.8), 0 0 30px rgba(100, 255, 218, 0.8)',
-      '0 0 5px rgba(100, 255, 218, 0.3), 0 0 10px rgba(100, 255, 218, 0.3)',
-    ],
-    transition: {
-      duration: 1.5,
-      repeat: Infinity,
-      ease: 'easeInOut',
-    },
-  },
-};
-
-// Holographic effect for cards
-const holographicVariants = {
-  hover: {
-    background: [
-      'linear-gradient(45deg, rgba(100, 255, 218, 0.1), rgba(76, 211, 176, 0.1))',
-      'linear-gradient(45deg, rgba(76, 211, 176, 0.1), rgba(100, 255, 218, 0.1))',
-      'linear-gradient(45deg, rgba(100, 255, 218, 0.1), rgba(76, 211, 176, 0.1))',
-    ],
-    transition: {
-      duration: 1,
-      repeat: Infinity,
-      ease: 'linear',
-    },
-  },
-};
-
-// Progress bar animation
-const progressVariants = {
-  initial: { width: 0 },
-  animate: (percent: number) => ({
-    width: `${percent}%`,
-    transition: {
-      duration: 1.5,
-      ease: 'easeOut',
-    },
-  }),
-};
 
 export default function TechTeamAchievements() {
   const [members, setMembers] = useState<TechTeamMember[]>([]);
@@ -153,6 +97,7 @@ export default function TechTeamAchievements() {
     setError(null);
 
     try {
+      console.log('Starting fetchMembers...');
       const { data: test, error: testError } = await supabase
         .from('registered_users')
         .select('count')
@@ -169,13 +114,18 @@ export default function TechTeamAchievements() {
         throw new Error(userError?.message || 'Failed to fetch team members');
       }
 
+      console.log('Fetched users:', users);
+
       if (users.length === 0) {
         console.warn('No users returned from get_users_with_registration');
         throw new Error('No team members found.');
       }
 
       const validUsers = users.filter((user: any) => user.user_id != null && user.user_id !== 'undefined');
+      console.log('Valid users:', validUsers);
+
       const userIds = validUsers.map((user: any) => user.user_id);
+      console.log('User IDs:', userIds);
 
       let taskSubmissions: any[] = [];
       if (userIds.length > 0) {
@@ -188,6 +138,7 @@ export default function TechTeamAchievements() {
           taskSubmissions = [];
         } else {
           taskSubmissions = taskData || [];
+          console.log('Fetched task submissions:', taskSubmissions);
         }
       }
 
@@ -202,6 +153,7 @@ export default function TechTeamAchievements() {
           quizAttempts = [];
         } else {
           quizAttempts = quizData || [];
+          console.log('Fetched quiz attempts:', quizAttempts);
         }
       }
 
@@ -214,6 +166,7 @@ export default function TechTeamAchievements() {
         tasks = [];
       } else {
         tasks = tasksData || [];
+        console.log('Fetched tasks:', tasks);
       }
 
       const quizAggregates = quizAttempts.reduce((acc: any, attempt: any) => {
@@ -358,7 +311,15 @@ export default function TechTeamAchievements() {
       );
 
       const sortedMembers = uniqueMembersData.sort((a: TechTeamMember, b: TechTeamMember) => b.totalScore - a.totalScore);
-      setMembers(sortedMembers);
+      console.log('Sorted members:', sortedMembers);
+      setMembers((prevMembers) => {
+        if (JSON.stringify(prevMembers) !== JSON.stringify(sortedMembers)) {
+          console.log('Members updated:', sortedMembers);
+          return sortedMembers;
+        }
+        console.log('No change in members data');
+        return prevMembers;
+      });
     } catch (err: any) {
       console.error('Unexpected error in fetchMembers:', err);
       setError(err.message || 'An unexpected error occurred. Please try again later.');
@@ -370,13 +331,47 @@ export default function TechTeamAchievements() {
   }, []);
 
   useEffect(() => {
+    // Initial fetch
     fetchMembers();
-    const interval = setInterval(() => {
-      console.log('Polling for leaderboard updates...');
-      fetchMembers();
-    }, 3_600_000); // 1 hour = 3,600,000 milliseconds
-    return () => clearInterval(interval);
+
+    // Subscribe to changes in task_submissions table
+    const taskSubscription = supabase
+      .channel('task-submissions-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'task_submissions' },
+        (payload) => {
+          console.log('Task submission change detected:', payload);
+          fetchMembers();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to changes in quiz_attempts table
+    const quizSubscription = supabase
+      .channel('quiz-attempts-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'quiz_attempts' },
+        (payload) => {
+          console.log('Quiz attempt change detected:', payload);
+          fetchMembers();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions on component unmount
+    return () => {
+      console.log('Unsubscribing from real-time channels...');
+      supabase.removeChannel(taskSubscription);
+      supabase.removeChannel(quizSubscription);
+    };
   }, [fetchMembers]);
+
+  const handleRefresh = () => {
+    console.log('Manual refresh triggered...');
+    fetchMembers();
+  };
 
   const getRankBadge = (score: number, index: number) => {
     if (index === 0) {
@@ -473,15 +468,27 @@ export default function TechTeamAchievements() {
             >
               {'>'} Celebrate the achievements of our tech team and see who’s leading the ranks.
             </motion.p>
-            <motion.button
-              onClick={() => setShowRulesPopup(true)}
-              className="mt-4 px-4 py-2 bg-theme-primary text-navy font-mono rounded-lg hover:bg-theme-secondary transition-all duration-300 flex items-center gap-2 mx-auto text-sm sm:text-base"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <FaQuestionCircle className="text-navy" />
-              [SCORING RULES]
-            </motion.button>
+            <div className="flex justify-center gap-4 mt-4">
+              <motion.button
+                onClick={() => setShowRulesPopup(true)}
+                className="px-4 py-2 bg-theme-primary text-navy font-mono rounded-lg hover:bg-theme-secondary transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <FaQuestionCircle className="text-navy" />
+                [SCORING RULES]
+              </motion.button>
+              <motion.button
+                onClick={handleRefresh}
+                className="px-4 py-2 bg-theme-primary text-navy font-mono rounded-lg hover:bg-theme-secondary transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                disabled={isRefreshing}
+              >
+                <FaSyncAlt className={`text-navy ${isRefreshing ? 'animate-spin' : ''}`} />
+                [REFRESH SCORES]
+              </motion.button>
+            </div>
             {isRefreshing && (
               <motion.div
                 className="text-theme-primary text-xs sm:text-sm font-mono mt-2 flex items-center justify-center gap-2"
