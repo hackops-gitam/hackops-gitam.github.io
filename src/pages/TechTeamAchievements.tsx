@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { FaTrophy, FaMedal, FaStar, FaShieldAlt, FaCode, FaLock, FaQuestionCircle, FaInfoCircle, FaSyncAlt, FaTimes } from 'react-icons/fa';
+import { FaTrophy, FaMedal, FaStar, FaShieldAlt, FaCode, FaLock, FaQuestionCircle, FaInfoCircle, FaSyncAlt, FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { GiHoodedFigure } from 'react-icons/gi';
 import { supabase } from '../supabaseClient';
 
@@ -97,6 +97,85 @@ const CloseButton = ({ onClose }) => {
   );
 };
 
+// Certifications Slider Component
+const CertificationsSlider = ({ certifications }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (certifications.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % certifications.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [certifications.length]);
+
+  const handlePrev = () => {
+    setCurrentIndex((prevIndex) =>
+      prevIndex === 0 ? certifications.length - 1 : prevIndex - 1
+    );
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % certifications.length);
+  };
+
+  if (!certifications || certifications.length === 0) {
+    return (
+      <div className="text-center text-theme-text/70 font-mono text-sm sm:text-base italic">
+        [NO CERTIFICATIONS AVAILABLE]
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full max-w-2xl mx-auto">
+      <div className="overflow-hidden rounded-xl">
+        <AnimatePresence initial={false} mode="wait">
+          <motion.div
+            key={currentIndex}
+            className="relative w-full h-48 sm:h-64 md:h-80"
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.5 }}
+          >
+            <img
+              src={certifications[currentIndex]}
+              alt={`Certification ${currentIndex + 1}`}
+              className="w-full h-full object-cover rounded-xl border-2 border-theme-primary/50"
+              onError={(e) => (e.currentTarget.src = 'https://placehold.co/400x300?text=Cert+Not+Found')}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-theme-bg/80 to-transparent pointer-events-none"></div>
+            <div className="absolute bottom-2 left-2 text-theme-primary font-mono text-xs sm:text-sm">
+              [CERT {currentIndex + 1}/{certifications.length}]
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+      {certifications.length > 1 && (
+        <>
+          <motion.button
+            onClick={handlePrev}
+            className="absolute top-1/2 left-2 transform -translate-y-1/2 p-2 bg-theme-bg/50 rounded-full text-theme-primary hover:bg-theme-primary/20 transition-all duration-300"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <FaChevronLeft size={20} />
+          </motion.button>
+          <motion.button
+            onClick={handleNext}
+            className="absolute top-1/2 right-2 transform -translate-y-1/2 p-2 bg-theme-bg/50 rounded-full text-theme-primary hover:bg-theme-primary/20 transition-all duration-300"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <FaChevronRight size={20} />
+          </motion.button>
+        </>
+      )}
+    </div>
+  );
+};
+
 // Define the TechTeamMember interface
 interface TechTeamMember {
   id: string;
@@ -135,7 +214,6 @@ export default function TechTeamAchievements() {
 
   const DEFAULT_PHOTO = 'https://placehold.co/128x128?text=Access+Denied';
 
-  // Add keyboard support for closing popups
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -388,10 +466,8 @@ export default function TechTeamAchievements() {
   }, []);
 
   useEffect(() => {
-    // Initial fetch
     fetchMembers();
 
-    // Subscribe to changes in task_submissions table
     const taskSubscription = supabase
       .channel('task-submissions-channel')
       .on(
@@ -404,7 +480,6 @@ export default function TechTeamAchievements() {
       )
       .subscribe();
 
-    // Subscribe to changes in quiz_attempts table
     const quizSubscription = supabase
       .channel('quiz-attempts-channel')
       .on(
@@ -417,7 +492,6 @@ export default function TechTeamAchievements() {
       )
       .subscribe();
 
-    // Cleanup subscriptions on component unmount
     return () => {
       console.log('Unsubscribing from real-time channels...');
       supabase.removeChannel(taskSubscription);
@@ -867,13 +941,11 @@ export default function TechTeamAchievements() {
                 <p className="text-theme-text/70 text-xs sm:text-sm mt-2 font-sans">For {showScoreBreakdown.name}</p>
               </div>
               <div className="space-y-4 sm:space-y-6 text-theme-text font-sans">
-                {/* Total Score */}
                 <div className="bg-theme-bg/50 p-4 sm:p-5 rounded-lg border border-theme-primary/20">
                   <h4 className="text-base sm:text-lg font-semibold text-theme-primary mb-2">[TOTAL SCORE]</h4>
                   <p className="text-lg sm:text-2xl font-bold text-theme-primary">{showScoreBreakdown.totalScore.toFixed(1)}</p>
                 </div>
 
-                {/* Base Score Breakdown */}
                 <div className="bg-theme-bg/50 p-4 sm:p-5 rounded-lg border border-theme-primary/20">
                   <h4 className="text-base sm:text-lg font-semibold text-theme-primary mb-3">[BASE SCORE]</h4>
                   <div className="space-y-3">
@@ -890,7 +962,6 @@ export default function TechTeamAchievements() {
                   </div>
                 </div>
 
-                {/* Timing Bonus and Penalties */}
                 <div className="bg-theme-bg/50 p-4 sm:p-5 rounded-lg border border-theme-primary/20">
                   <h4 className="text-base sm:text-lg font-semibold text-theme-primary mb-3">[TIMING BONUS]</h4>
                   <div className="space-y-3">
@@ -911,7 +982,6 @@ export default function TechTeamAchievements() {
                   </div>
                 </div>
 
-                {/* Submission Details */}
                 <div className="bg-theme-bg/50 p-4 sm:p-5 rounded-lg border border-theme-primary/20">
                   <h4 className="text-base sm:text-lg font-semibold text-theme-primary mb-3">[SUBMISSION DETAILS]</h4>
                   {showScoreBreakdown.submissions.length > 0 ? (
@@ -974,62 +1044,137 @@ export default function TechTeamAchievements() {
             onTouchMove={(e) => e.stopPropagation()}
           >
             <motion.div
-              className="glassmorphic-card p-4 sm:p-6 md:p-8 rounded-2xl border border-theme-primary/50 shadow-theme-primary w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl max-h-[90vh] overflow-y-auto relative bg-navy/90"
+              className="relative w-full max-w-4xl h-[90vh] bg-navy/90 rounded-2xl border border-theme-primary/50 shadow-theme-primary overflow-hidden"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ duration: 0.5 }}
               onClick={(e) => e.stopPropagation()}
             >
+              <div className="absolute inset-0 bg-circuit-pattern opacity-10 pointer-events-none"></div>
               <CloseButton onClose={() => setSelectedMember(null)} />
-              <div className="text-center">
-                <motion.img
-                  src={selectedMember.photo || DEFAULT_PHOTO}
-                  alt={selectedMember.name}
-                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-theme-primary/50 mx-auto mb-4"
-                  onError={(e) => (e.currentTarget.src = DEFAULT_PHOTO)}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                />
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme-primary font-mono">{selectedMember.name}</h3>
-                <p className="text-theme-text text-xs sm:text-sm font-sans">{selectedMember.batchAndBranch}</p>
-                <p className="text-theme-secondary text-xs sm:text-sm font-mono mt-1">[LEVEL]: {getLevel(selectedMember.totalScore)}</p>
+              <div className="relative bg-gradient-to-b from-theme-bg/50 to-transparent p-6 sm:p-8 border-b border-theme-primary/30">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                  <motion.img
+                    src={selectedMember.photo || DEFAULT_PHOTO}
+                    alt={selectedMember.name}
+                    className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-theme-primary/50 shadow-theme-primary"
+                    onError={(e) => (e.currentTarget.src = DEFAULT_PHOTO)}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.5 }}
+                    whileHover={{ rotate: 10, scale: 1.05 }}
+                  />
+                  <div className="text-center sm:text-left">
+                    <motion.h3
+                      className="text-2xl sm:text-3xl md:text-4xl font-bold text-theme-primary font-mono"
+                      variants={glitchVariants}
+                      initial="initial"
+                      animate="animate"
+                      data-text={`[${selectedMember.name.toUpperCase()}]`}
+                    >
+                      [{selectedMember.name.toUpperCase()}]
+                    </motion.h3>
+                    <p className="text-theme-text text-sm sm:text-base font-sans mt-1">
+                      {selectedMember.batchAndBranch}
+                    </p>
+                    <p className="text-theme-secondary text-sm sm:text-base font-mono mt-1">
+                      [LEVEL]: {getLevel(selectedMember.totalScore)}
+                    </p>
+                    <p className="text-theme-text text-sm sm:text-base font-mono mt-1">
+                      [POINTS]:{' '}
+                      <motion.span
+                        className="text-theme-primary font-bold"
+                        variants={neonPulseVariants}
+                        animate="pulse"
+                      >
+                        {selectedMember.totalScore.toFixed(1)}
+                      </motion.span>
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="mt-4 sm:mt-6 space-y-3 sm:space-y-4 text-theme-text font-sans">
-                <p className="text-xs sm:text-sm">
-                  [BIO]: <span className="text-theme-primary">{selectedMember.bio}</span>
-                </p>
-                <p className="text-xs sm:text-sm">
-                  [POINTS]: <span className="text-theme-primary font-bold">{selectedMember.totalScore.toFixed(1)}</span>
-                </p>
-                <p className="text-xs sm:text-sm">
-                  [TASKS]: <span className="text-theme-secondary">{selectedMember.taskRate.toFixed(1)}%</span>
-                </p>
-                <p className="text-xs sm:text-sm">
-                  [QUIZZES]: <span className="text-theme-accent">{selectedMember.quizRate.toFixed(1)}%</span>
-                </p>
-                <p className="text-xs sm:text-sm">
-                  [SKILLS]:{' '}
-                  <span className="text-theme-primary">
-                    {selectedMember.skills.length > 0 ? selectedMember.skills.join(', ') : 'None'}
-                  </span>
-                </p>
-                <p className="text-xs sm:text-sm">
-                  [CERTIFICATIONS]:{' '}
-                  <span className="text-theme-primary">
-                    {selectedMember.certifications.length > 0 ? selectedMember.certifications.join(', ') : 'None'}
-                  </span>
-                </p>
-                <p className="text-xs sm:text-sm">
-                  [TRYHACKME]:{' '}
-                  <span className="text-theme-secondary">
-                    Rank: {selectedMember.tryHackMe.rank}, Rooms: {selectedMember.tryHackMe.completedRooms}
-                  </span>
-                </p>
-                <p className="text-xs sm:text-sm">
-                  [TESTIMONIAL]: <span className="text-theme-primary">{selectedMember.testimonial}</span>
-                </p>
+              <div className="flex flex-col lg:flex-row h-[calc(90vh-160px)] overflow-hidden">
+                <div className="lg:w-1/3 bg-theme-bg/30 border-r border-theme-primary/30 p-6 sm:p-8 overflow-y-auto">
+                  <div className="space-y-6">
+                    <div className="glassmorphic-card p-4 sm:p-6 rounded-xl border border-theme-primary/20">
+                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-3">
+                        [BIO]
+                      </h4>
+                      <p className="text-theme-text text-sm sm:text-base font-sans leading-relaxed">
+                        {selectedMember.bio}
+                      </p>
+                    </div>
+                    <div className="glassmorphic-card p-4 sm:p-6 rounded-xl border border-theme-primary/20">
+                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-3">
+                        [TESTIMONIAL]
+                      </h4>
+                      <p className="text-theme-text text-sm sm:text-base font-sans leading-relaxed italic">
+                        "{selectedMember.testimonial}"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="lg:w-2/3 p-6 sm:p-8 overflow-y-auto">
+                  <div className="space-y-8">
+                    <div className="glassmorphic-card p-4 sm:p-6 rounded-xl border border-theme-primary/20">
+                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-4">
+                        [TRYHACKME STATS]
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="bg-theme-bg/50 p-4 rounded-lg border border-theme-secondary/30">
+                          <p className="text-theme-secondary font-mono text-sm sm:text-base">
+                            [RANK]:{' '}
+                            <span className="text-theme-primary font-bold">
+                              {selectedMember.tryHackMe.rank || 'N/A'}
+                            </span>
+                          </p>
+                        </div>
+                        <div className="bg-theme-bg/50 p-4 rounded-lg border border-theme-secondary/30">
+                          <p className="text-theme-secondary font-mono text-sm sm:text-base">
+                            [ROOMS COMPLETED]:{' '}
+                            <span className="text-theme-primary font-bold">
+                              {selectedMember.tryHackMe.completedRooms || 0}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <p className="text-theme-secondary font-mono text-sm sm:text-base mb-2">
+                          [ACHIEVEMENTS]:
+                        </p>
+                        {selectedMember.tryHackMe.achievements &&
+                        selectedMember.tryHackMe.achievements.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {selectedMember.tryHackMe.achievements.map(
+                              (achievement, index) => (
+                                <motion.span
+                                  key={index}
+                                  className="px-3 py-1 bg-theme-primary/20 text-theme-primary font-mono text-xs sm:text-sm rounded-full border border-theme-primary/50"
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: index * 0.1 }}
+                                >
+                                  {achievement}
+                                </motion.span>
+                              )
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-theme-text/70 font-mono text-sm italic">
+                            [NO ACHIEVEMENTS YET]
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-4">
+                        [CERTIFICATIONS]
+                      </h4>
+                      <CertificationsSlider certifications={selectedMember.certifications} />
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </motion.div>
