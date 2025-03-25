@@ -39,6 +39,7 @@ interface RegisteredUser {
     completedRooms: number;
     achievements: string[];
     profileLink: string;
+    badge?: string; // Now stores the userPublicId (e.g., "3110189")
   };
   certifications?: string[];
   bio?: string;
@@ -70,6 +71,7 @@ interface TechTeamMemberFormData {
     completedRooms: number;
     achievements: string[];
     profileLink: string;
+    badge: string; // Now stores the userPublicId (e.g., "3110189")
   };
   certifications: string[];
   bio: string;
@@ -300,7 +302,7 @@ export function AdminDashboard() {
   };
 
   const handleEditTechTeamMember = (user: RegisteredUser) => {
-    console.log('User being edited:', user); // Debug log
+    console.log('User being edited:', user);
     if (!user.id) {
       setTechTeamError('Cannot edit user: Invalid user ID.');
       return;
@@ -311,7 +313,13 @@ export function AdminDashboard() {
       email: user.email,
       registrationNumber: user.registration_number,
       photo: user.photo || DEFAULT_PHOTO,
-      tryHackMe: user.try_hack_me || { rank: 0, completedRooms: 0, achievements: [], profileLink: '' },
+      tryHackMe: {
+        rank: user.try_hack_me?.rank || 0,
+        completedRooms: user.try_hack_me?.completedRooms || 0,
+        achievements: user.try_hack_me?.achievements || [],
+        profileLink: user.try_hack_me?.profileLink || '',
+        badge: user.try_hack_me?.badge || '', // Now stores userPublicId (e.g., "3110189")
+      },
       certifications: user.certifications || [],
       bio: user.bio || '',
       batchAndBranch: user.batch_and_branch || '',
@@ -324,7 +332,7 @@ export function AdminDashboard() {
       name: user.name,
       email: user.email,
       registrationNumber: user.registration_number,
-    }); // Debug log
+    });
   };
 
   const handleSaveTechTeamMember = async () => {
@@ -338,7 +346,7 @@ export function AdminDashboard() {
       return;
     }
 
-    console.log('Saving member with ID:', editingMember.id); // Debug log
+    console.log('Saving member with ID:', editingMember.id);
 
     try {
       const updatedPhoto = editingMember.registrationNumber
@@ -797,6 +805,33 @@ export function AdminDashboard() {
                       }
                       className="w-full p-2 rounded bg-gray-800 text-white"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 mb-1">TryHackMe User Public ID (for Badge)</label>
+                    <input
+                      type="text"
+                      value={editingMember.tryHackMe.badge}
+                      onChange={(e) =>
+                        setEditingMember({
+                          ...editingMember,
+                          tryHackMe: { ...editingMember.tryHackMe, badge: e.target.value },
+                        })
+                      }
+                      className="w-full p-2 rounded bg-gray-800 text-white"
+                      placeholder="e.g., 3110189"
+                    />
+                    {editingMember.tryHackMe.badge && (
+                      <div className="mt-2">
+                        <iframe
+                          src={`https://tryhackme.com/api/v2/badges/public-profile?userPublicId=${editingMember.tryHackMe.badge}`}
+                          style={{ border: 'none', width: '200px', height: '200px' }}
+                          title="TryHackMe Badge Preview"
+                        />
+                      </div>
+                    )}
+                    {!editingMember.tryHackMe.badge && (
+                      <p className="text-gray-400 mt-2">Enter a User Public ID to preview the badge.</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-gray-300 mb-1">Certifications (comma-separated)</label>

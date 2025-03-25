@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { FaTrophy, FaMedal, FaStar, FaShieldAlt, FaCode, FaLock, FaQuestionCircle, FaInfoCircle, FaSyncAlt, FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaTrophy, FaMedal, FaStar, FaShieldAlt, FaCode, FaLock, FaQuestionCircle, FaInfoCircle, FaSyncAlt, FaTimes, FaChevronLeft, FaChevronRight, FaEnvelope, FaGithub, FaTwitter, FaBlog, FaLaptopCode, FaAward } from 'react-icons/fa';
 import { GiHoodedFigure } from 'react-icons/gi';
 import { supabase } from '../supabaseClient';
 
-// Define animation variants
 const glitchVariants: Variants = {
   initial: { opacity: 0 },
   animate: {
@@ -54,7 +53,39 @@ const neonPulseVariants: Variants = {
   },
 };
 
-// Reusable CloseButton component
+const holographicSheenVariants: Variants = {
+  initial: { backgroundPosition: '0% 50%' },
+  hover: {
+    backgroundPosition: '100% 50%',
+    transition: { duration: 1.5, ease: 'linear', repeat: Infinity, repeatType: 'mirror' },
+  },
+};
+
+const neonWaveVariants: Variants = {
+  animate: {
+    backgroundPosition: ['0% 50%', '100% 50%'],
+    transition: {
+      duration: 5,
+      ease: 'linear',
+      repeat: Infinity,
+      repeatType: 'loop',
+    },
+  },
+};
+
+const particleVariants: Variants = {
+  animate: {
+    y: [0, -10, 0],
+    opacity: [0, 1, 0],
+    transition: {
+      duration: 2,
+      repeat: Infinity,
+      repeatType: 'loop',
+      ease: 'easeInOut',
+    },
+  },
+};
+
 const CloseButton = ({ onClose }) => {
   const buttonRef = useRef(null);
 
@@ -97,7 +128,6 @@ const CloseButton = ({ onClose }) => {
   );
 };
 
-// Certifications Slider Component
 const CertificationsSlider = ({ certifications }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -145,6 +175,15 @@ const CertificationsSlider = ({ certifications }) => {
               className="w-full h-full object-cover rounded-xl border-2 border-theme-primary/50"
               onError={(e) => (e.currentTarget.src = 'https://placehold.co/400x300?text=Cert+Not+Found')}
             />
+            <motion.div
+              className="absolute inset-0 rounded-xl border-2 border-theme-primary/50"
+              style={{
+                background: 'linear-gradient(45deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2))',
+              }}
+              variants={holographicSheenVariants}
+              initial="initial"
+              whileHover="hover"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-theme-bg/80 to-transparent pointer-events-none"></div>
             <div className="absolute bottom-2 left-2 text-theme-primary font-mono text-xs sm:text-sm">
               [CERT {currentIndex + 1}/{certifications.length}]
@@ -176,14 +215,13 @@ const CertificationsSlider = ({ certifications }) => {
   );
 };
 
-// Define the TechTeamMember interface
 interface TechTeamMember {
   id: string;
   name: string;
   email: string;
   registrationNumber: string;
   photo: string;
-  tryHackMe: { rank: number; completedRooms: number; achievements: string[]; profileLink: string };
+  tryHackMe: { rank: number; completedRooms: number; achievements: string[]; profileLink: string; badge?: string };
   certifications: string[];
   bio: string;
   batchAndBranch: string;
@@ -421,7 +459,7 @@ export default function TechTeamAchievements() {
           email: user.email || 'No email',
           registrationNumber: user.registration_number || '',
           photo: user.photo,
-          tryHackMe: user.try_hack_me || { rank: 0, completedRooms: 0, achievements: [], profileLink: '' },
+          tryHackMe: user.try_hack_me || { rank: 0, completedRooms: 0, achievements: [], profileLink: '', badge: '' },
           certifications: user.certifications || [],
           bio: user.bio || 'No bio available.',
           batchAndBranch: user.batch_and_branch || 'N/A',
@@ -839,7 +877,6 @@ export default function TechTeamAchievements() {
         </div>
       </div>
 
-      {/* Rules Popup */}
       <AnimatePresence>
         {showRulesPopup && (
           <motion.div
@@ -915,7 +952,6 @@ export default function TechTeamAchievements() {
         )}
       </AnimatePresence>
 
-      {/* Score Breakdown Popup */}
       <AnimatePresence>
         {showScoreBreakdown && (
           <motion.div
@@ -1031,11 +1067,10 @@ export default function TechTeamAchievements() {
         )}
       </AnimatePresence>
 
-      {/* Profile Popup */}
       <AnimatePresence>
         {selectedMember && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-theme-bg/80 backdrop-blur-md px-4 sm:px-6 py-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-theme-bg/90 backdrop-blur-lg px-4 sm:px-6 py-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1044,7 +1079,7 @@ export default function TechTeamAchievements() {
             onTouchMove={(e) => e.stopPropagation()}
           >
             <motion.div
-              className="relative w-full max-w-4xl h-[90vh] bg-navy/90 rounded-2xl border border-theme-primary/50 shadow-theme-primary overflow-hidden"
+              className="relative w-full max-w-5xl h-[90vh] bg-navy/95 rounded-2xl border border-theme-primary/50 shadow-theme-primary overflow-hidden"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
@@ -1052,22 +1087,55 @@ export default function TechTeamAchievements() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="absolute inset-0 bg-circuit-pattern opacity-10 pointer-events-none"></div>
-              <CloseButton onClose={() => setSelectedMember(null)} />
-              <div className="relative bg-gradient-to-b from-theme-bg/50 to-transparent p-6 sm:p-8 border-b border-theme-primary/30">
-                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                  <motion.img
-                    src={selectedMember.photo || DEFAULT_PHOTO}
-                    alt={selectedMember.name}
-                    className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-theme-primary/50 shadow-theme-primary"
-                    onError={(e) => (e.currentTarget.src = DEFAULT_PHOTO)}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                    whileHover={{ rotate: 10, scale: 1.05 }}
+              <div className="absolute inset-0 pointer-events-none">
+                {[...Array(10)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute w-1 h-1 bg-theme-primary/50 rounded-full"
+                    style={{
+                      left: `${Math.random() * 100}%`,
+                      top: `${Math.random() * 100}%`,
+                    }}
+                    variants={particleVariants}
+                    animate="animate"
+                    transition={{ delay: Math.random() * 2 }}
                   />
+                ))}
+              </div>
+
+              <CloseButton onClose={() => setSelectedMember(null)} />
+
+              <div className="relative bg-gradient-to-b from-theme-bg/70 to-transparent p-6 sm:p-8 border-b border-theme-primary/40">
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-theme-primary/20 via-theme-secondary/20 to-theme-primary/20 opacity-50"
+                  variants={neonWaveVariants}
+                  animate="animate"
+                />
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 relative z-10">
+                  <motion.div
+                    className="relative"
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <img
+                      src={selectedMember.photo || DEFAULT_PHOTO}
+                      alt={selectedMember.name}
+                      className="w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover border-4 border-theme-primary/70 shadow-theme-primary"
+                      onError={(e) => (e.currentTarget.src = DEFAULT_PHOTO)}
+                    />
+                    <motion.div
+                      className="absolute inset-0 rounded-full border-2 border-theme-primary/50"
+                      style={{
+                        background: 'linear-gradient(45deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2))',
+                      }}
+                      variants={holographicSheenVariants}
+                      initial="initial"
+                      whileHover="hover"
+                    />
+                  </motion.div>
                   <div className="text-center sm:text-left">
                     <motion.h3
-                      className="text-2xl sm:text-3xl md:text-4xl font-bold text-theme-primary font-mono"
+                      className="text-3xl sm:text-4xl md:text-5xl font-bold text-theme-primary font-mono"
                       variants={glitchVariants}
                       initial="initial"
                       animate="animate"
@@ -1091,38 +1159,169 @@ export default function TechTeamAchievements() {
                         {selectedMember.totalScore.toFixed(1)}
                       </motion.span>
                     </p>
+                    <p className="text-theme-text text-sm sm:text-base font-mono mt-1">
+                      [ROLE]: <span className="text-theme-accent">{selectedMember.testimonial}</span>
+                    </p>
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col lg:flex-row h-[calc(90vh-160px)] overflow-hidden">
-                <div className="lg:w-1/3 bg-theme-bg/30 border-r border-theme-primary/30 p-6 sm:p-8 overflow-y-auto">
+
+              <div className="flex flex-col lg:flex-row h-[calc(90vh-200px)] overflow-hidden">
+                <div className="lg:w-2/5 bg-theme-bg/20 border-r border-theme-primary/40 p-6 sm:p-8 overflow-y-auto">
                   <div className="space-y-6">
-                    <div className="glassmorphic-card p-4 sm:p-6 rounded-xl border border-theme-primary/20">
-                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-3">
-                        [BIO]
+                    <motion.div
+                      className="glassmorphic-card p-4 sm:p-6 rounded-xl border border-theme-primary/30 backdrop-blur-md"
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <motion.div
+                        className="absolute inset-0 rounded-xl"
+                        style={{
+                          background: 'linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1))',
+                        }}
+                        variants={holographicSheenVariants}
+                        initial="initial"
+                        whileHover="hover"
+                      />
+                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-3 relative z-10 flex items-center gap-2">
+                        <FaLaptopCode /> [BIO]
                       </h4>
-                      <p className="text-theme-text text-sm sm:text-base font-sans leading-relaxed">
+                      <p className="text-theme-text text-sm sm:text-base font-sans leading-relaxed relative z-10">
                         {selectedMember.bio}
                       </p>
-                    </div>
-                    <div className="glassmorphic-card p-4 sm:p-6 rounded-xl border border-theme-primary/20">
-                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-3">
-                        [TESTIMONIAL]
+                    </motion.div>
+
+                    <motion.div
+                      className="glassmorphic-card p-4 sm:p-6 rounded-xl border border-theme-primary/30 backdrop-blur-md"
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <motion.div
+                        className="absolute inset-0 rounded-xl"
+                        style={{
+                          background: 'linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1))',
+                        }}
+                        variants={holographicSheenVariants}
+                        initial="initial"
+                        whileHover="hover"
+                      />
+                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-3 relative z-10 flex items-center gap-2">
+                        <FaCode /> [SKILLS]
                       </h4>
-                      <p className="text-theme-text text-sm sm:text-base font-sans leading-relaxed italic">
-                        "{selectedMember.testimonial}"
-                      </p>
-                    </div>
+                      <div className="flex flex-wrap gap-2 relative z-10">
+                        {selectedMember.skills && selectedMember.skills.length > 0 ? (
+                          selectedMember.skills.map((skill, index) => (
+                            <motion.span
+                              key={index}
+                              className="px-3 py-1 bg-theme-primary/20 text-theme-primary font-mono text-xs sm:text-sm rounded-full border border-theme-primary/50"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                            >
+                              {skill}
+                            </motion.span>
+                          ))
+                        ) : (
+                          <p className="text-theme-text/70 font-mono text-sm italic">[NO SKILLS LISTED]</p>
+                        )}
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      className="glassmorphic-card p-4 sm:p-6 rounded-xl border border-theme-primary/30 backdrop-blur-md"
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <motion.div
+                        className="absolute inset-0 rounded-xl"
+                        style={{
+                          background: 'linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1))',
+                        }}
+                        variants={holographicSheenVariants}
+                        initial="initial"
+                        whileHover="hover"
+                      />
+                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-3 relative z-10 flex items-center gap-2">
+                        <FaEnvelope /> [CONNECT]
+                      </h4>
+                      <div className="flex flex-wrap gap-3 relative z-10">
+                        {selectedMember.socials.email && (
+                          <motion.a
+                            href={selectedMember.socials.email}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-theme-primary hover:text-theme-secondary font-mono text-sm transition-colors duration-300 flex items-center gap-2"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                          >
+                            <FaEnvelope /> [EMAIL]
+                          </motion.a>
+                        )}
+                        {selectedMember.socials.github && (
+                          <motion.a
+                            href={selectedMember.socials.github}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-theme-primary hover:text-theme-secondary font-mono text-sm transition-colors duration-300 flex items-center gap-2"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                          >
+                            <FaGithub /> [GITHUB]
+                          </motion.a>
+                        )}
+                        {selectedMember.socials.twitter && (
+                          <motion.a
+                            href={selectedMember.socials.twitter}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-theme-primary hover:text-theme-secondary font-mono text-sm transition-colors duration-300 flex items-center gap-2"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                          >
+                            <FaTwitter /> [TWITTER]
+                          </motion.a>
+                        )}
+                        {selectedMember.socials.blog && (
+                          <motion.a
+                            href={selectedMember.socials.blog}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-theme-primary hover:text-theme-secondary font-mono text-sm transition-colors duration-300 flex items-center gap-2"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                          >
+                            <FaBlog /> [BLOG]
+                          </motion.a>
+                        )}
+                        {(!selectedMember.socials.email && !selectedMember.socials.github && !selectedMember.socials.twitter && !selectedMember.socials.blog) && (
+                          <p className="text-theme-text/70 font-mono text-sm italic">[NO SOCIAL LINKS AVAILABLE]</p>
+                        )}
+                      </div>
+                    </motion.div>
                   </div>
                 </div>
-                <div className="lg:w-2/3 p-6 sm:p-8 overflow-y-auto">
+
+                <div className="lg:w-3/5 p-6 sm:p-8 overflow-y-auto">
                   <div className="space-y-8">
-                    <div className="glassmorphic-card p-4 sm:p-6 rounded-xl border border-theme-primary/20">
-                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-4">
-                        [TRYHACKME STATS]
+                    <motion.div
+                      className="glassmorphic-card p-4 sm:p-6 rounded-xl border border-theme-primary/30 backdrop-blur-md relative"
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <motion.div
+                        className="absolute inset-0 rounded-xl"
+                        style={{
+                          background: 'linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1))',
+                        }}
+                        variants={holographicSheenVariants}
+                        initial="initial"
+                        whileHover="hover"
+                      />
+                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-4 relative z-10 flex items-center gap-2">
+                        <FaShieldAlt /> [TRYHACKME STATS]
                       </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="bg-theme-bg/50 p-4 rounded-lg border border-theme-secondary/30">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
+                        <div className="bg-theme-bg/40 p-4 rounded-lg border border-theme-secondary/40">
                           <p className="text-theme-secondary font-mono text-sm sm:text-base">
                             [RANK]:{' '}
                             <span className="text-theme-primary font-bold">
@@ -1130,7 +1329,7 @@ export default function TechTeamAchievements() {
                             </span>
                           </p>
                         </div>
-                        <div className="bg-theme-bg/50 p-4 rounded-lg border border-theme-secondary/30">
+                        <div className="bg-theme-bg/40 p-4 rounded-lg border border-theme-secondary/40">
                           <p className="text-theme-secondary font-mono text-sm sm:text-base">
                             [ROOMS COMPLETED]:{' '}
                             <span className="text-theme-primary font-bold">
@@ -1139,7 +1338,7 @@ export default function TechTeamAchievements() {
                           </p>
                         </div>
                       </div>
-                      <div className="mt-4">
+                      <div className="mt-4 relative z-10">
                         <p className="text-theme-secondary font-mono text-sm sm:text-base mb-2">
                           [ACHIEVEMENTS]:
                         </p>
@@ -1166,13 +1365,77 @@ export default function TechTeamAchievements() {
                           </p>
                         )}
                       </div>
-                    </div>
-                    <div>
-                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-4">
-                        [CERTIFICATIONS]
+                      {selectedMember.tryHackMe.profileLink && (
+                        <div className="mt-4 relative z-10">
+                          <a
+                            href={selectedMember.tryHackMe.profileLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-theme-primary font-mono text-sm hover:text-theme-secondary transition-colors duration-300 flex items-center gap-2"
+                          >
+                            <FaLaptopCode /> [VIEW TRYHACKME PROFILE]
+                          </a>
+                        </div>
+                      )}
+                    </motion.div>
+
+                    <motion.div
+                      className="glassmorphic-card p-4 sm:p-6 rounded-xl border border-theme-primary/30 backdrop-blur-md relative"
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <motion.div
+                        className="absolute inset-0 rounded-xl"
+                        style={{
+                          background: 'linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1))',
+                        }}
+                        variants={holographicSheenVariants}
+                        initial="initial"
+                        whileHover="hover"
+                      />
+                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-4 relative z-10 flex items-center gap-2">
+                        <FaAward /> [TRYHACKME BADGE]
+                      </h4>
+                      <div className="relative z-10 flex justify-center">
+                        {selectedMember.tryHackMe.badge ? (
+                          <motion.div
+                            className="relative"
+                            whileHover={{ scale: 1.05 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <iframe
+                              src={`https://tryhackme.com/api/v2/badges/public-profile?userPublicId=${selectedMember.tryHackMe.badge}`}
+                              style={{ border: 'none', width: '200px', height: '200px' }}
+                              title="TryHackMe Badge"
+                              className="rounded-lg border-2 border-theme-primary/50 shadow-theme-primary"
+                            />
+                            <motion.div
+                              className="absolute inset-0 rounded-lg border-2 border-theme-primary/50"
+                              style={{
+                                background: 'linear-gradient(45deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2))',
+                              }}
+                              variants={holographicSheenVariants}
+                              initial="initial"
+                              whileHover="hover"
+                            />
+                          </motion.div>
+                        ) : (
+                          <p className="text-theme-text/70 font-mono text-sm italic">[NO BADGE AVAILABLE]</p>
+                        )}
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      className="relative"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <h4 className="text-lg sm:text-xl font-semibold text-theme-primary font-mono mb-4 flex items-center gap-2">
+                        <FaAward /> [CERTIFICATIONS]
                       </h4>
                       <CertificationsSlider certifications={selectedMember.certifications} />
-                    </div>
+                    </motion.div>
                   </div>
                 </div>
               </div>
