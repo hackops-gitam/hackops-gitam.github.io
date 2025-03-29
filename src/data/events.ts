@@ -88,16 +88,16 @@ export const events: Event[] = [
     type: 'workshop',
     whatsappLink: 'https://chat.whatsapp.com/G9RNGrXFIqC4nfhniKNr8f',
     eventImages: [],
-    status: 'upcoming',
+    status: 'past',
     certificateLink: "#",
-    registrationStatus: 'started',
+    registrationStatus: 'closed',
     useCustomForm: true,
     registrationLink: 'https://forms.example.com/network-security-webinar',
     detailsLink: '#',
     image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1742497165/WIFI_1_mlzley.png',
     participants: {
       current: 0,
-      total: 85
+      total: 80
     },
     FetchFromDB:true // Use static value
   }
