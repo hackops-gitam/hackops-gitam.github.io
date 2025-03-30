@@ -401,6 +401,10 @@ export function AdminDashboard() {
     window.location.href = '/#/admin/login';
   };
 
+  const handleExternalRedirect = () => {
+    window.location.href = 'https://ominous-space-system-4565w56q9wjcjq94.github.dev/';
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex justify-between items-center mb-6">
@@ -446,6 +450,12 @@ export function AdminDashboard() {
           onClick={() => setActiveTab('techTeam')}
         >
           Tech Team Members
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={handleExternalRedirect}
+        >
+          External Dashboard
         </Button>
       </div>
 
