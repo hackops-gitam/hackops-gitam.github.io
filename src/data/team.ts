@@ -94,7 +94,7 @@ export const teamMembers: TeamMember[] = [
   },
   {
     id: '11',
-    name: 'Sanjana Kusetti',
+    name: 'Sri Sai Sanjana Kusetti',
     role: 'Treasurer',
     image: 'https://doeresults.gitam.edu/photo/img.aspx?id=2024003990',
     term: '2024-2025', // Older term
