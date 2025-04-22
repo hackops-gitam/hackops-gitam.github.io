@@ -120,6 +120,6 @@ export const events: Event[] = [
       current: 0,
       total: 90
     },
-    FetchFromDB:true // Use static value
+    FetchFromDB:true
   }
 ];
