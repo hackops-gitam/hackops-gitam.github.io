@@ -118,7 +118,7 @@ export const events: Event[] = [
     image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1745311711/Cyber_Security_1_cqchfb.png',
     participants: {
       current: 0,
-      total: 80
+      total: 90
     },
     FetchFromDB:true // Use static value
   }
