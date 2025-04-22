@@ -100,5 +100,26 @@ export const events: Event[] = [
       total: 80
     },
     FetchFromDB:true // Use static value
+  },
+  {
+    id: 'Summer Cybersecurity Bootcamp',
+    title: 'Summer Cybersecurity Bootcamp',
+    description: 'Department of CSE & HackOps Initiative to develop the skills among the GITAM HYDERABAD Students . Start your Cybersecurity  Journey Right Now !',
+    date: '2025-05-10',
+    type: 'workshop',
+    whatsappLink: 'https://chat.whatsapp.com/CIByEOtWqCTDuyCFB2n5am',
+    eventImages: [],
+    status: 'upcoming',
+    certificateLink: "#",
+    registrationStatus: 'notStarted',
+    useCustomForm: true,
+    registrationLink: 'https://forms.example.com/network-security-webinar',
+    detailsLink: '#',
+    image: 'https://res.cloudinary.com/dae56bvjp/image/upload/v1745311711/Cyber_Security_1_cqchfb.png',
+    participants: {
+      current: 0,
+      total: 80
+    },
+    FetchFromDB:true // Use static value
   }
 ];
